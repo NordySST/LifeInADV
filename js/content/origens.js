@@ -92,7 +92,7 @@
         const res = (stat) => ({
           t: { for: 'Resolver na força bruta', agi: 'Agir rápido e em silêncio', int: 'Planejar com cuidado', car: 'Negociar uma saída', sor: 'Confiar na sorte' }[stat],
           check: (s) => ({ s: stat, d: s.f.missao ? s.f.missao.dif + (s.f.missao.stat === stat ? -2 : stat === 'sor' ? 2 : 0) : 5 }),
-          ok: { t: 'Serviço cumprido! {cliente} pagou o combinado e espalhou seu nome por aí.', fn: (s, c, chips) => { const m = s.f.missao; s.gold += m.ouro; chips.push({ k: 'gold', t: '+' + m.ouro + ' ouro' }); s.f.missoes = (s.f.missoes || 0) + 1; if (s.f.missoes === 3) { s.titles.push('Faz-Tudo de Confiança'); chips.push({ k: 'gold', t: '🏅 Faz-Tudo de Confiança' }); } delete s.f.missao; } },
+          ok: { t: 'Serviço cumprido! {cliente} pagou o combinado e espalhou seu nome por aí.', fn: (s, c, chips) => { const m = s.f.missao; s.gold += m.ouro; chips.push({ k: 'gold', t: '+' + m.ouro + ' ouro' }); s.f.missoes = (s.f.missoes || 0) + 1; if (s.f.missoes === 3) { s.titles.push('Faz-Tudo de Confiança'); chips.push({ k: 'title', t: 'Faz-Tudo de Confiança' }); } delete s.f.missao; } },
           fail: [{ t: 'Deu tudo errado. Você voltou machucado e de mãos vazias.', fx: { hp: [-4, -2] }, fn: (s) => delete s.f.missao, cause: 'uma missão que deu errado' }, { t: 'Você falhou, e {cliente} exigiu seu adiantamento de volta.', fx: { gold: -15 }, fn: (s) => delete s.f.missao }],
         });
         return ['for', 'agi', 'int', 'car', 'sor'].map(res);

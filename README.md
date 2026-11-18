@@ -30,6 +30,21 @@ Servido via http(s), o jogo vira um **PWA**: dá para "Adicionar à tela inicial
 Numa simulação de 500 vidas com escolhas aleatórias, duas vidas compartilham em média **só ~15% das situações**,
 e apareceram mais de 3.000 situações diferentes.
 
+## Arte e som (16 bits)
+
+Nada de imagens ou áudios externos: tudo é gerado por código, então o jogo continua leve (e funciona offline).
+
+- **Cenas animadas** em 160×90 pixels, ampliadas sem suavização: céus com *dithering* ordenado (dia, entardecer, noite, tempestade, sonho),
+  paisagens para os 7 biomas, interiores (taverna, templo, casa, biblioteca, caverna), cidade, mercado, festa com fogos, batalha, mar e cemitério.
+  Chuva, neve, fogo, água e estrelas se mexem.
+- **Cada evento escolhe sua cena** (`js/art.js` → `A.specFor`): pelo tipo de evento procedural, por palavras-chave ou pelo bioma da região atual.
+- **Sprites com troca de paleta**: a mesma criatura muda de cor conforme a espécie e o adjetivo (albina, sombria, pestilenta...).
+- **Retrato e boneco do personagem** gerados para cada vida (pele, cabelo, penteado, barba), que mudam com o ofício (chapéu de mago, elmo...) e envelhecem.
+- **Interface** em janelas de RPG clássico, com fonte pixelada ([Pixelify Sans](fonts/OFL-PixelifySans.txt), licença OFL), cursor, texto que se digita e ícones em pixel.
+- **Som** (`js/audio.js`): sintetizador chiptune em WebAudio (ondas de pulso, triângulo, ruído e eco), com efeitos para sucesso, falha, ouro, item, título, dano, viagem, nascimento e morte.
+- **Música procedural**: cada vida compõe seus próprios temas para infância, juventude, vida adulta e velhice, além das músicas do menu e da morte.
+  Música e efeitos podem ser desligados em "Som".
+
 ## Estrutura
 
 ```
@@ -38,7 +53,10 @@ css/style.css           visual (pensado para retrato/celular)
 js/engine.js            motor: estado, sorteio de eventos, efeitos, memória entre vidas
 js/gen.js               geradores de nomes, cidades, regiões, criaturas, itens e deuses
 js/content/*.js         conteúdo: origens/traços, infância, juventude, adulto, velhice, procedural
+js/art.js               arte em pixel: cenas, sprites, retratos e ícones
+js/audio.js             sintetizador, efeitos sonoros e música procedural
 js/ui.js                telas e interação
+fonts/                  fonte pixelada (OFL)
 tools/simular.js        simulador para testar conteúdo e medir repetição
 sw.js, manifest...      PWA (instalação e modo offline)
 ```

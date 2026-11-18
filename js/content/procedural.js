@@ -86,6 +86,7 @@
       if (p >= 7) vit.push({ t: 'A vitória contra ' + c.full + ' foi tão épica que os bardos comporão canções!', title: 'Algoz de ' + G.gen.cap(c.base), fx: { gold: [30, 60] }, w: 6 });
       return {
         key: 'cri:' + c.key + ':' + li,
+        art: { c },
         text: LUGAR[li] + ', ' + c.full + ' ' + verbo + '!' + (p >= 8 ? ' Parece extremamente perigoso.' : p <= 3 ? ' Não parece tão ameaçador.' : ''),
         choices: [
           { t: 'Lutar', check: { s: 'for', d: p }, ok: vit, fail: { t: c.g === 'm' ? 'O ' + c.base + ' te feriu gravemente antes de você escapar.' : 'A ' + c.base + ' te feriu gravemente antes de você escapar.', fx: { hp: -Math.max(2, Math.ceil(p * 0.8)) }, cause: 'atacado por ' + c.full } },

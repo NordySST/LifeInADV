@@ -11,7 +11,7 @@ const vm = require('vm');
 
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const scripts = [...html.matchAll(/<script src="(js\/[^"]+)"/g)].map((m) => m[1]).filter((f) => !f.endsWith('ui.js'));
+const scripts = [...html.matchAll(/<script src="(js\/[^"]+)"/g)].map((m) => m[1]).filter((f) => !/ui\.js|audio\.js|art\.js/.test(f));
 const ctx = { console };
 ctx.globalThis = ctx;
 vm.createContext(ctx);

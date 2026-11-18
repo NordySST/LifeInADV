@@ -283,7 +283,7 @@
     if (o.item) {
       const it = typeof o.item === 'function' ? o.item(s, ctx) : o.item === 'gen' ? G.gen.item() : typeof o.item === 'string' ? { n: o.item, tag: o.item } : o.item;
       s.items.push(it);
-      chips.push({ k: 'item', t: '🎒 ' + it.n + (it.b ? ' (+' + it.b + ' ' + G.STATS[it.s] + ')' : '') });
+      chips.push({ k: 'item', t: it.n + (it.b ? ' (+' + it.b + ' ' + G.STATS[it.s] + ')' : '') });
     }
     if (o.lose) {
       const i = s.items.findIndex((x) => x.tag === o.lose || x.n === o.lose);
@@ -291,7 +291,7 @@
       if (s.items.length && j >= 0) { chips.push({ k: 'bad', t: 'Perdeu: ' + s.items[j].n }); s.items.splice(j, 1); }
     }
     if (o.job) { s.job = o.job; chips.push({ k: 'info', t: 'Ofício: ' + G.JOBS[o.job] }); }
-    if (o.title && !s.titles.includes(o.title)) { const t = G.fill(o.title, s, ctx); s.titles.push(t); chips.push({ k: 'gold', t: '🏅 ' + t }); }
+    if (o.title && !s.titles.includes(o.title)) { const t = G.fill(o.title, s, ctx); s.titles.push(t); chips.push({ k: 'title', t }); }
     if (o.ppl) for (const k in o.ppl) s.ppl[k] = G.fill(o.ppl[k], s, ctx);
     if (o.chain) {
       const list = Array.isArray(o.chain[0]) ? o.chain : [o.chain];
@@ -300,7 +300,7 @@
     if (o.travel) {
       const others = s.world.regions.map((r, i) => i).filter((i) => i !== s.reg);
       s.reg = o.travel === 'home' ? 0 : R.pick(others);
-      chips.push({ k: 'info', t: '🧭 ' + G.region(s).name });
+      chips.push({ k: 'travel', t: G.region(s).name });
     }
     if (o.fn) o.fn(s, ctx, chips);
     if (o.die) { s.alive = false; s.cause = G.fill(o.die, s, ctx); }
