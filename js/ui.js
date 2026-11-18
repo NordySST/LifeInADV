@@ -385,6 +385,19 @@
   // som de cursor ao passar por opções (computador)
   app.addEventListener('pointerover', (e) => { const o = e.target.closest && e.target.closest('.opt'); if (o && e.pointerType === 'mouse' && o !== app._hov) { app._hov = o; SND.play('select'); } });
 
+  // botão "voltar" do Android (app via Capacitor)
+  const cap = globalThis.Capacitor;
+  const isApp = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
+  if (isApp && cap.Plugins && cap.Plugins.App) {
+    cap.Plugins.App.addListener('backButton', () => {
+      const m = app.querySelector('.modal');
+      if (m) { SND.play('select'); m.remove(); return; }
+      if (app.querySelector('.screen.menu')) { cap.Plugins.App.exitApp(); return; }
+      SND.play('select');
+      menu();
+    });
+  }
+
   menu();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (!isApp && 'serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

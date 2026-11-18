@@ -1,0 +1,65 @@
+name: APK Android
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Testar o conteúdo do jogo
+        run: node tools/simular.js 300
+
+      - name: Preparar o app
+        run: |
+          npm run build
+          npx cap add android
+          npx @capacitor/assets generate --android --assetPath assets \
+            --iconBackgroundColor '#0d0a1c' --iconBackgroundColorDark '#0d0a1c' \
+            --splashBackgroundColor '#0d0a1c' --splashBackgroundColorDark '#0d0a1c'
+          sed -i 's/<activity/<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
+          npx cap sync android
+
+      - name: Compilar APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Renomear
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk mil-vidas.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mil-vidas-apk
+          path: mil-vidas.apk
+
+      - name: Publicar versão de teste (link direto para o celular)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-teste --yes --cleanup-tag || true
+          gh release create apk-teste mil-vidas.apk --prerelease --target "$GITHUB_SHA" \
+            --title "Mil Vidas — APK de teste" \
+            --notes "Compilado automaticamente a partir de ${GITHUB_REF_NAME} (${GITHUB_SHA::7}). Baixe o mil-vidas.apk no celular Android e instale."

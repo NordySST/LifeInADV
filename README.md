@@ -98,15 +98,28 @@ Depois de adicionar conteúdo, rode o simulador — ele aponta variáveis sem va
 node tools/simular.js 500
 ```
 
-## Levando para Android / iOS
+## Testando no Android
 
-O jogo é HTML/JS puro, então pode ser empacotado com o [Capacitor](https://capacitorjs.com/):
+A cada `push`, o GitHub Actions (`.github/workflows/android.yml`) testa o conteúdo, empacota o jogo com o
+[Capacitor](https://capacitorjs.com/) e compila um APK.
+
+1. No celular, abra a página **Releases** do repositório e baixe o `mil-vidas.apk` da versão **"APK de teste"**
+   (o arquivo também fica em *Actions → APK Android → Artifacts*).
+2. Toque no arquivo baixado. O Android vai pedir para permitir a instalação de apps desta fonte — permita.
+3. Abra o **Mil Vidas** na tela inicial.
+
+É um APK de *debug* (para testes). Para publicar na Play Store será preciso gerar uma versão assinada (`bundleRelease`).
+
+### Compilando no seu computador
+
+Com Node 22+, Java 21 e Android Studio instalados:
 
 ```bash
-npm init -y && npm i @capacitor/core @capacitor/cli @capacitor/android @capacitor/ios
-npx cap init "Mil Vidas" com.seunome.milvidas --web-dir .
-npx cap add android   # ou ios (precisa de um Mac com Xcode)
-npx cap open android  # abre no Android Studio para gerar o APK/AAB
+npm install
+npm run build          # copia o jogo para www/
+npx cap add android    # só na primeira vez
+npx cap sync android
+npx cap open android   # abre no Android Studio (Run ▶ para instalar no celular via USB)
 ```
 
-(Para publicar, o ideal é mover os arquivos do jogo para uma pasta `www/` e apontar `--web-dir www`.)
+O ícone e a tela de abertura ficam em `assets/` e são aplicados com `npx @capacitor/assets generate --android`.

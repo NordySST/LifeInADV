@@ -1,0 +1,9 @@
+{
+  "appId": "io.github.nordysst.milvidas",
+  "appName": "Mil Vidas",
+  "webDir": "www",
+  "backgroundColor": "#0d0a1c",
+  "android": {
+    "backgroundColor": "#0d0a1c"
+  }
+}
