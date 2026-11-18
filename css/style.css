@@ -18,6 +18,7 @@
   --bad: #ff6b6b;
   --info: #8fd3ff;
   --title: #ffd36a;
+  color-scheme: dark;
   --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
   --safe-bot: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
 }
@@ -167,6 +168,7 @@ h4 { margin: 12px 0 4px; color: var(--title); font-size: .8rem; text-transform: 
 /* ---------- janelas sobrepostas ---------- */
 .modal { position: fixed; inset: 0; background: rgba(5, 4, 14, .72); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 14px; animation: in .2s steps(3) both; }
 .sheet { width: 100%; max-width: 460px; max-height: 88vh; overflow-y: auto; }
+.ask { font-size: 1.05rem; margin: 4px 4px 10px; }
 .log { max-height: 62vh; overflow-y: auto; padding-right: 4px; }
 .entry { padding: 8px 0; border-bottom: 2px dotted rgba(184, 192, 236, .25); font-size: .9rem; }
 .entry .age { color: var(--gold); font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; }

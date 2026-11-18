@@ -83,7 +83,7 @@
     const cv = $('#tcv');
     animate([{ cv, draw: (c, t) => A.renderTitle(c, t, seed) }]);
     SND.music('menu', seed);
-    on('#new', () => { SND.play('confirm'); if (!save || confirm('Começar uma nova vida? A vida atual será perdida.')) creation(); });
+    on('#new', () => { SND.play('confirm'); if (!save) creation(); else ask('Começar uma nova vida? A vida de ' + save.name + ' será perdida.', creation); });
     on('#cont', () => { SND.play('confirm'); S = save; ensureLook(S); next(); });
     on('#gal', () => { SND.play('confirm'); gallery(); });
     on('#snd', () => { SND.play('confirm'); soundMenu(menu); });
@@ -269,6 +269,14 @@
     return div;
   }
 
+  function ask(text, onYes) {
+    const div = modal(`<p class="ask">${esc(text)}</p>
+      <nav class="list"><button class="opt" id="no">${ic('cursor', 'cur')}<span>Não</span></button>
+      <button class="opt danger" id="yes">${ic('cursor', 'cur')}<span>Sim</span></button></nav>`);
+    on('#no', () => { SND.play('select'); div.remove(); }, div);
+    on('#yes', () => { SND.play('confirm'); div.remove(); onYes(); }, div);
+  }
+
   function sheet() {
     SND.play('page');
     const ppl = [
@@ -379,7 +387,7 @@
         <button class="opt danger" id="reset">${ic('cursor', 'cur')}<span>Apagar todo o progresso</span></button>
       </nav>`, 'gallery');
     on('#back', () => { SND.play('select'); menu(); });
-    on('#reset', () => { if (confirm('Apagar todas as crônicas e descobertas?')) { G.resetMeta(); G.saveGame(null); gallery(); } });
+    on('#reset', () => { SND.play('select'); ask('Apagar todas as crônicas e descobertas? Isso não pode ser desfeito.', () => { G.resetMeta(); G.saveGame(null); gallery(); }); });
   }
 
   // som de cursor ao passar por opções (computador)
