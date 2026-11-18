@@ -30,20 +30,18 @@ Servido via http(s), o jogo vira um **PWA**: dá para "Adicionar à tela inicial
 Numa simulação de 500 vidas com escolhas aleatórias, duas vidas compartilham em média **só ~15% das situações**,
 e apareceram mais de 3.000 situações diferentes.
 
-## Arte e som (16 bits)
+## Arte e som
 
-Nada de imagens ou áudios externos: tudo é gerado por código, então o jogo continua leve (e funciona offline).
+Nada de imagens ou áudios externos: tudo é gerado por código (`js/art.js` e `js/audio.js`), então o jogo continua leve e funciona offline.
 
-- **Cenas animadas** em 160×90 pixels, ampliadas sem suavização: céus com *dithering* ordenado (dia, entardecer, noite, tempestade, sonho),
-  paisagens para os 7 biomas, interiores (taverna, templo, casa, biblioteca, caverna), cidade, mercado, festa com fogos, batalha, mar e cemitério.
-  Chuva, neve, fogo, água e estrelas se mexem.
-- **Cada evento escolhe sua cena** (`js/art.js` → `A.specFor`): pelo tipo de evento procedural, por palavras-chave ou pelo bioma da região atual.
-- **Sprites com troca de paleta**: a mesma criatura muda de cor conforme a espécie e o adjetivo (albina, sombria, pestilenta...).
-- **Retrato e boneco do personagem** gerados para cada vida (pele, cabelo, penteado, barba), que mudam com o ofício (chapéu de mago, elmo...) e envelhecem.
-- **Interface** em janelas de RPG clássico, com fonte pixelada ([Pixelify Sans](fonts/OFL-PixelifySans.txt), licença OFL), cursor, texto que se digita e ícones em pixel.
-- **Som** (`js/audio.js`): sintetizador chiptune em WebAudio (ondas de pulso, triângulo, ruído e eco), com efeitos para sucesso, falha, ouro, item, título, dano, viagem, nascimento e morte.
-- **Música procedural**: cada vida compõe seus próprios temas para infância, juventude, vida adulta e velhice, além das músicas do menu e da morte.
-  Música e efeitos podem ser desligados em "Som".
+- **Livro ilustrado**: página de pergaminho texturizada, texto em fonte serifada ([Alegreya](fonts/OFL-Alegreya.txt), OFL), ilustrações com bordas rasgadas, opções com ornamentos e efeitos listados abaixo do texto.
+- **Pixel art "pintada"**: paisagens com ruído fractal, rampas de cor com variação de matiz (sombras roxas, luzes amareladas), névoa atmosférica, sol/lua com brilho, nuvens sombreadas, trilhas em perspectiva e molduras de floresta.
+- **7 biomas e várias ambientações**: floresta, montanha, costa, pântano, deserto, planície, tundra; taverna, templo com vitral e feixe de luz, casa com lareira, biblioteca, caverna com tochas e cristais; cidade, mercado, festa com lanternas e fogos, batalha, mar com píer, cemitério, sonho e ruínas. Horários: dia, entardecer, noite, neblina, tempestade.
+- **Iluminação nos interiores**: cada pixel recebe luz de velas, lareiras e janelas.
+- **Criaturas montadas com formas 3D** sombreadas e reduzidas a pixels com contorno (mais de 35 espécies: lobos, ursos, mamutes, trolls, golens, hidras, grifos, aranhas, espíritos, dragões...). Adjetivos mudam cores e olhos (albina, sombria, pestilenta, olhos vermelhos) e o poder muda o tamanho.
+- **Personagem e retrato** gerados para cada vida, que mudam com o ofício e envelhecem.
+- **Animações**: fogo, velas, estrelas, brilho na água, chuva, neve, névoa, fumaça, vaga-lumes e poeira na luz.
+- **Som**: sintetizador chiptune em WebAudio com eco, efeitos sonoros e música procedural própria para cada fase de cada vida.
 
 ## Estrutura
 
@@ -56,7 +54,7 @@ js/content/*.js         conteúdo: origens/traços, infância, juventude, adulto
 js/art.js               arte em pixel: cenas, sprites, retratos e ícones
 js/audio.js             sintetizador, efeitos sonoros e música procedural
 js/ui.js                telas e interação
-fonts/                  fonte pixelada (OFL)
+fonts/                  fontes Alegreya e Pixelify Sans (OFL)
 tools/simular.js        simulador para testar conteúdo e medir repetição
 sw.js, manifest...      PWA (instalação e modo offline)
 ```
