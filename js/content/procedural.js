@@ -79,6 +79,8 @@
       const li = R.idx(LUGAR);
       const verbo = { fera: 'rosna e avança', monstro: 'bloqueia o caminho', gente: 'saca uma arma', espirito: 'surge do nada, flutuando' }[c.tipo];
       const loot = c.tipo === 'gente' ? { gold: [10, 40] } : { gold: [5, 20] };
+      const boss = p >= 8 || ['hidra', 'serpente marinha', 'verme da areia'].includes(c.base);
+      if (boss) loot.gold = [40, 90];
       const vit = [
         { t: 'Você derrotou ' + c.full + '! ' + (c.tipo === 'gente' ? 'Levou o que tinha nos bolsos.' : 'Vendeu as presas e o couro.'), fx: Object.assign({ for: R.chance(0.3) ? 1 : 0 }, loot) },
         { t: 'Vitória suada contra ' + c.full + '. Entre os restos, algo brilhava.', item: 'gen', fx: { hp: -1 }, w: 4 },
@@ -89,7 +91,7 @@
         art: { c },
         text: LUGAR[li] + ', ' + c.full + ' ' + verbo + '!' + (p >= 8 ? ' Parece extremamente perigoso.' : p <= 3 ? ' Não parece tão ameaçador.' : ''),
         choices: [
-          { t: 'Lutar', check: { s: 'for', d: p }, ok: vit, fail: { t: c.g === 'm' ? 'O ' + c.base + ' te feriu gravemente antes de você escapar.' : 'A ' + c.base + ' te feriu gravemente antes de você escapar.', fx: { hp: -Math.max(2, Math.ceil(p * 0.8)) }, cause: 'atacado por ' + c.full } },
+          { t: boss ? 'Enfrentar ' + (c.g === 'm' ? 'o ' : 'a ') + c.base : 'Lutar', combat: { enemy: { name: (c.g === 'm' ? 'o ' : 'a ') + c.nome, base: c.base, adj: c.adj, pow: p, tipo: c.tipo, g: c.g, boss } }, ok: vit, fail: { t: 'Você foi obrigado a recuar, ferido e sem fôlego.', fx: {} } },
           { t: 'Fugir', check: { s: 'agi', d: p - 1 }, ok: { t: 'Você escapou por pouco.', fx: { agi: R.chance(0.3) ? 1 : 0 } }, fail: { t: 'Não deu para fugir a tempo.', fx: { hp: -Math.ceil(p / 2) }, cause: 'alcançado por ' + c.full } },
           c.tipo === 'gente' || c.tipo === 'espirito'
             ? { t: 'Conversar', check: { s: 'car', d: p }, ok: [{ t: 'A conversa desarmou o encontro. Vocês se despediram em paz.', fx: { car: 1 } }, { t: 'Com palavras certas, você ganhou um aliado improvável — e um conselho valioso.', fx: { int: 1, sor: 1 } }], fail: { t: 'Palavras não funcionaram.', fx: { hp: -Math.ceil(p / 2) }, cause: 'um encontro com ' + c.full } }

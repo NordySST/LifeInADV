@@ -131,7 +131,7 @@
       vila: G.gen.town(), vila2: G.gen.town(), taverna: G.gen.tavern(),
       criatura: cri.full, deus: R.pick(s.world.gods).nome, item: G.gen.item().n,
       profissao: s.job ? G.JOBS[s.job] : 'sem ofício',
-      reino: s.world.kingdom, rei: s.world.king,
+      reino: s.world.kingdom, rei: s.world.king, _cri: cri,
     });
   };
   G.fill = (t, s, ctx) => String(t).replace(/\{(\w+)\}/g, (m, k) => (ctx && ctx[k] != null ? ctx[k] : s.ppl[k] != null ? s.ppl[k] : m));
@@ -221,11 +221,16 @@
 
   function asArr(x) { return x == null ? [{}] : Array.isArray(x) ? x : [x]; }
 
-  G.choose = function (s, inst, idx) {
+  // opts (vindo do combate): { ok, outcome, dmg, cause }
+  G.choose = function (s, inst, idx, opts) {
     const c = G.choices(s, inst)[idx];
+    if (c.combat && !(opts && opts.combat) && G.combat) opts = G.combat.auto(s, inst, c);
+    opts = opts || {};
     let outs, ok = null;
     const ck = G.check(s, c, inst.ctx);
-    if (ck) {
+    if (opts.outcome) outs = opts.outcome;
+    else if (opts.ok != null) { ok = opts.ok; outs = ok ? c.ok : c.fail; }
+    else if (ck) {
       ok = R.chance(G.chance(s, ck));
       outs = ok ? c.ok : c.fail;
     } else outs = c.out;
@@ -235,8 +240,10 @@
     const text = txt(o.t, s, inst.ctx);
     s.seen[inst.key] = 1; s.seen[inst.id] = 1; s.last[inst.id] = s.turn;
     const chips = G.apply(s, o, inst.ctx);
-    if (ok === true) chips.unshift({ k: 'ok', t: 'Sucesso' });
-    if (ok === false) chips.unshift({ k: 'bad', t: 'Falha' });
+    if (opts.dmg > 0 && s.alive) chips.push(...G.apply(s, { fx: { hp: -opts.dmg }, cause: opts.cause }, inst.ctx));
+    if (opts.combat) chips.unshift(ok === true ? { k: 'ok', t: 'Vitória' } : ok === false ? { k: 'bad', t: 'Derrota' } : { k: 'info', t: 'Combate encerrado' });
+    else if (ok === true) chips.unshift({ k: 'ok', t: 'Sucesso' });
+    else if (ok === false) chips.unshift({ k: 'bad', t: 'Falha' });
 
     // registra o evento
     G.meta.seen[inst.key] = (G.meta.seen[inst.key] || 0) + 1;
@@ -256,7 +263,7 @@
     if (!s.alive) G.finish(s);
     G.saveMeta();
     G.saveGame(s);
-    return { text, chips, ok, dead: !s.alive };
+    return { text, chips, ok, dead: !s.alive, combat: !!opts.combat };
   };
 
   G.apply = function (s, o, ctx) {

@@ -68,6 +68,7 @@
 
   /* ---------------- menu ---------------- */
   function menu() {
+    bToken++;
     const d = G.discovery(), save = G.loadGame(), m = G.meta;
     const seed = (Date.now() / 60000) | 0;
     screen(`
@@ -220,15 +221,18 @@
             const ck = G.check(S, c, cur.ctx);
             let badge = '';
             if (ck) { const p = Math.round(G.chance(S, ck) * 100); badge = `<span class="badge ${p >= 65 ? 'easy' : p >= 40 ? 'mid' : 'hard'}">${ic(ck.s)}${p}%</span>`; }
+            if (c.combat) { const en = G.combat.enemyOf(S, cur, c); badge = en.boss ? '<span class="badge hard">CHEFE</span>' : '<span class="badge mid">COMBATE</span>'; }
             return `<button class="opt choice" data-i="${i}">${ic('orn', 'orn')}<span>${esc(G.fill(c.t, S, cur.ctx))}</span>${badge}</button>`;
           }).join('')}
         </nav>`;
     } else {
-      const tag = res.ok === true ? '<span class="tag ok">‹ Sucesso ›</span>' : res.ok === false ? '<span class="tag bad">‹ Falha ›</span>' : '';
+      const tag = res.combat ? (res.ok === true ? '<span class="tag ok">‹ Vitória ›</span>' : res.ok === false ? '<span class="tag bad">‹ Derrota ›</span>' : '<span class="tag">‹ Fim do combate ›</span>') : res.ok === true ? '<span class="tag ok">‹ Sucesso ›</span>' : res.ok === false ? '<span class="tag bad">‹ Falha ›</span>' : '';
+      const blog = res.lines ? `<details class="bt-sum"><summary>Rever o combate</summary>${res.lines.map((l) => `<p class="bt-line">${esc(l)}</p>`).join('')}</details>` : '';
       body = `
         <p class="story">${esc(last.ev)}</p>
         <p class="picked">${ic('orn')}${esc(last.ch)}</p>
         ${tag}
+        ${blog}
         <p class="story" id="txt"></p>
         <div class="effects hidden" id="fx">${fxHtml(res.chips)}</div>
         ${rule()}
@@ -259,6 +263,7 @@
     on('.choice', (e) => {
       e.stopPropagation();
       const i = +e.currentTarget.dataset.i;
+      if (G.choices(S, cur)[i].combat) { startCombat(i); return; }
       SND.play('confirm');
       res = G.choose(S, cur, i);
       phase = 'result';
@@ -272,6 +277,156 @@
     on('#diary', diary);
     on('#snd', soundMenu);
     on('#tomenu', () => { SND.play('select'); menu(); });
+  }
+
+  /* ---------------- combate ---------------- */
+  let battle = null, bToken = 0;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const nowT = () => (performance.now() - t0) / 1000;
+  const STAT_ABR = { for: 'FOR', agi: 'AGI', int: 'INT', car: 'CAR', sor: 'SOR' };
+  function chanceBadge(stat, p) { const v = Math.round(p * 100); return `<span class="badge ${v >= 65 ? 'easy' : v >= 40 ? 'mid' : 'hard'}">${ic(stat)}${v}%</span>`; }
+
+  function startCombat(i) {
+    const CB = G.combat, c = G.choices(S, cur)[i];
+    const enemy = CB.enemyOf(S, cur, c);
+    battle = CB.start(S, enemy);
+    battle.idx = i; battle.choice = G.fill(c.t, S, cur.ctx);
+    spec.fig = { t: 'criatura', c: { base: enemy.base || 'lobo', adj: enemy.adj || '', pow: enemy.pow, tipo: enemy.tipo || 'fera', g: enemy.g } };
+    A.resetScene(spec);
+    if (battle.boss) { SND.music('luta', seedOf(S) + 7); SND.play('warn'); } else SND.play('slash');
+    phase = 'combat';
+    const token = ++bToken;
+    renderCombat();
+    (battle.boss ? bossLoop : narratedFlow)(token);
+  }
+
+  function renderCombat() {
+    const b = battle, CB = G.combat;
+    screen(`
+      ${hud()}
+      <main class="page">
+        <div class="vignette" id="sw"><canvas class="px" id="scv"></canvas></div>
+        <div class="place">${esc(G.region(S).name)}</div>
+        <p class="story">${esc(cur.text)}</p>
+        <p class="picked">${ic('orn')}${esc(b.choice)}</p>
+        <section class="battle ${b.boss ? 'boss' : ''}">
+          <div class="bt-row"><span class="bt-name">Você</span><div class="bt-bar hero"><div id="hbar"></div></div><b id="hhp"></b></div>
+          <div class="bt-row"><span class="bt-name">${esc(CB.cap(b.e.name))}${b.boss ? ' <span class="tag boss">CHEFE</span>' : ''}</span><div class="bt-bar foe"><div id="fbar"></div></div><b id="fhp"></b></div>
+          <div class="bt-log" id="blog"></div>
+          <p class="bt-prompt" id="bprompt"></p>
+          <nav class="opts" id="bopts"></nav>
+        </section>
+      </main>`, 'game');
+    A.portraitCanvas($('#pcv'), S);
+    const cv = $('#scv');
+    A.render(cv, spec, nowT(), S);
+    animate([{ cv, draw: (c, t) => A.render(c, spec, t, S) }]);
+    bars();
+  }
+  function bars() {
+    const b = battle;
+    const hb = $('#hbar'), fb = $('#fbar');
+    if (!hb) return;
+    hb.style.width = Math.max(0, (100 * b.hero.hp) / b.hero.max) + '%';
+    fb.style.width = Math.max(0, (100 * b.e.hp) / b.e.max) + '%';
+    $('#hhp').textContent = Math.max(0, b.hero.hp) + '/' + b.hero.max;
+    $('#fhp').textContent = Math.max(0, b.e.hp) + '/' + b.e.max;
+  }
+  function addLine(text, cls) {
+    if (!text) return;
+    battle.lines.push(text);
+    const lg = $('#blog');
+    if (!lg) return;
+    const p = document.createElement('p');
+    p.className = 'bt-line ' + (cls || '');
+    p.textContent = text;
+    lg.appendChild(p);
+    p.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function ask2(prompt, opts) {
+    return new Promise((resolve) => {
+      const pr = $('#bprompt'), box = $('#bopts');
+      if (!box) return;
+      pr.textContent = prompt || '';
+      box.innerHTML = opts.map((o, i) => `<button class="opt bopt" data-i="${i}" ${o.disabled ? 'disabled' : ''}>${ic('orn', 'orn')}<span>${esc(o.label)}${o.desc ? `<small>${esc(o.desc)}</small>` : ''}</span>${o.chance != null ? chanceBadge(o.stat, o.chance) : ''}</button>`).join('');
+      box.querySelectorAll('.bopt').forEach((el) => el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const o = opts[+el.dataset.i];
+        if (o.disabled) return;
+        SND.play('confirm');
+        pr.textContent = ''; box.innerHTML = '';
+        resolve(o);
+      }));
+    });
+  }
+  async function play(evs, token) {
+    const b = battle;
+    for (const ev of evs) {
+      if (token !== bToken) return;
+      const t = nowT();
+      const sw = $('#sw');
+      if (ev.kind === 'atk' && ev.who === 'hero') {
+        A.fx(spec, [{ who: 0, kind: 'lunge', dur: 0.35 }], t); SND.play('slash');
+        await wait(170);
+        if (ev.hit) { A.fx(spec, [{ who: 1, kind: 'hit', dur: 0.45 }, { who: 1, kind: 'text', text: '-' + ev.dmg + (ev.crit ? '!' : ''), col: ev.crit ? [255, 220, 80] : [255, 255, 255], dur: 0.9 }], nowT()); SND.play('hit'); }
+        else { A.fx(spec, [{ who: 1, kind: 'text', text: 'ERROU', col: [220, 220, 220], dur: 0.8 }], nowT()); SND.play('miss'); }
+      } else if (ev.kind === 'atk' && ev.who === 'foe') {
+        A.fx(spec, [{ who: 1, kind: 'lunge', dur: 0.35 }], t);
+        await wait(170);
+        if (ev.hit) { A.fx(spec, [{ who: 0, kind: 'hit', dur: 0.45 }, { who: 0, kind: 'text', text: '-' + ev.dmg, col: [255, 90, 90], dur: 0.9 }], nowT()); SND.play('hurt'); if (sw) { sw.classList.remove('shake'); void sw.offsetWidth; sw.classList.add('shake'); } }
+        else { A.fx(spec, [{ who: 0, kind: 'text', text: 'ESQUIVA', col: [200, 230, 255], dur: 0.8 }], nowT()); SND.play('miss'); }
+      } else if (ev.kind === 'heal') { A.fx(spec, [{ who: 0, kind: 'heal', dur: 0.6 }, { who: 0, kind: 'text', text: '+' + ev.dmg, col: [120, 255, 140], dur: 0.9 }], t); SND.play('heal'); }
+      else if (ev.kind === 'guard') { A.fx(spec, [{ who: 0, kind: 'guard', dur: 0.5 }], t); SND.play('select'); }
+      else if (ev.kind === 'stun') { A.fx(spec, [{ who: 1, kind: 'stun', dur: 0.6 }, { who: 1, kind: 'text', text: '!', col: [255, 240, 120], dur: 0.8 }], t); SND.play('stat'); }
+      else if (ev.kind === 'stunned') { A.fx(spec, [{ who: 1, kind: 'text', text: 'ZZZ', col: [255, 240, 160], dur: 0.8 }], t); }
+      else if (ev.kind === 'charge') { A.fx(spec, [{ who: 1, kind: 'charge', dur: 0.9 }], t); SND.play('warn'); }
+      else if (ev.kind === 'stumble') { A.fx(spec, [{ who: 0, kind: 'text', text: '!', col: [255, 255, 255], dur: 0.6 }], t); }
+      addLine(G.combat.narrate(ev, b), ev.who === 'foe' && ev.hit ? 'bad' : ev.who === 'hero' && (ev.hit || ev.kind === 'heal') ? 'good' : '');
+      bars();
+      await wait(620);
+    }
+  }
+  async function narratedFlow(token) {
+    const b = battle, CB = G.combat;
+    addLine(CB.cap(b.e.name) + ' encara você. A luta começa.');
+    const ps = CB.postures(S).map((p) => Object.assign({}, p, { chance: CB.hitChance(S, p.stat, b.e.pow, 0) }));
+    const p = await ask2('Como você vai lutar?', ps);
+    if (token !== bToken) return;
+    b.posture = p.id;
+    await play(CB.round(S, b), token);
+    if (!b.over) await play(CB.round(S, b), token);
+    if (!b.over && token === bToken) {
+      const d = CB.decision(S, b);
+      const o = await ask2(CB.decisionText(d, b), d.opts.map((x) => Object.assign({}, x, { chance: x.stat ? CB.hitChance(S, x.stat, b.e.pow, 0) : null })));
+      if (token !== bToken) return;
+      await play(CB.decide(S, b, o.id), token);
+    }
+    if (!b.over) await play(CB.round(S, b), token);
+    CB.conclude(S, b);
+    if (token === bToken) finishCombat();
+  }
+  async function bossLoop(token) {
+    const b = battle, CB = G.combat;
+    addLine(CB.cap(b.e.name) + ' se ergue diante de você. É uma luta de vida ou morte.');
+    while (!b.over && token === bToken) {
+      const o = await ask2(b.charge ? CB.cap(b.e.name) + ' está prestes a desferir um golpe terrível!' : 'Sua vez.', CB.bossActions(S, b));
+      if (token !== bToken) return;
+      await play(CB.bossTurn(S, b, o.id), token);
+    }
+    if (token === bToken) finishCombat();
+  }
+  async function finishCombat() {
+    const b = battle, CB = G.combat;
+    const end = { win: 'Vitória!', lose: 'Você caiu.', flee: CB.cap(b.e.name) + ' foge.', spare: 'A luta termina.', retreat: 'Você recua.' }[b.result];
+    addLine(end, b.result === 'win' ? 'good' : b.result === 'lose' ? 'bad' : '');
+    if (b.result === 'win') { A.fx(spec, [{ who: 1, kind: 'hit', dur: 0.8 }], nowT()); SND.play('victory'); }
+    await wait(900);
+    res = G.choose(S, cur, b.idx, CB.resultOpts(S, b));
+    res.lines = b.lines.slice();
+    res.result = b.result;
+    battle = null;
+    phase = 'result';
+    render();
   }
 
   function resultSounds() {

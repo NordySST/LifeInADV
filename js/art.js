@@ -75,12 +75,12 @@
       this.d[i] = o >>> 24 ? pack(mixc(unpack(o), c, Math.min(1, a))) : pack(c);
     }
     rect(x, y, w, h, hex) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.px(x + i, y + j, hex); }
-    blit(s, x, y, flip) {
+    blit(s, x, y, flip, tint) {
       x |= 0; y |= 0;
       for (let j = 0; j < s.h; j++) for (let i = 0; i < s.w; i++) {
         const u = s.d[j * s.w + i]; if (!(u >>> 24)) continue;
         const X = x + (flip ? s.w - 1 - i : i), Y = y + j;
-        if (X >= 0 && Y >= 0 && X < this.w && Y < this.h) this.d[Y * this.w + X] = u;
+        if (X >= 0 && Y >= 0 && X < this.w && Y < this.h) this.d[Y * this.w + X] = tint ? pack(mixc(unpack(u), tint, 0.6)) : u;
       }
     }
     toCanvas(cv) {
@@ -1253,11 +1253,82 @@
     return { base: b, S, sprites, mask: tornMask(w, h, sp.seed, 'lrtb'), seed: sp.seed, tod: sp.tod, bg: typeof document !== 'undefined' ? sceneFile(sp) : null, bgExact: typeof document !== 'undefined' ? sceneExact(sp) : true };
   }
 
+  /* ======================= efeitos de combate ======================= */
+  const GLYPH = {
+    0: ['111', '101', '101', '101', '111'], 1: ['010', '110', '010', '010', '111'], 2: ['111', '001', '111', '100', '111'], 3: ['111', '001', '011', '001', '111'],
+    4: ['101', '101', '111', '001', '001'], 5: ['111', '100', '111', '001', '111'], 6: ['111', '100', '111', '101', '111'], 7: ['111', '001', '010', '010', '010'],
+    8: ['111', '101', '111', '101', '111'], 9: ['111', '101', '111', '001', '111'], '-': ['000', '000', '111', '000', '000'], '+': ['000', '010', '111', '010', '000'],
+    '!': ['010', '010', '010', '000', '010'], E: ['111', '100', '110', '100', '111'], R: ['110', '101', '110', '101', '101'], O: ['111', '101', '101', '101', '111'],
+    U: ['101', '101', '101', '101', '111'], S: ['111', '100', '111', '001', '111'], Q: ['111', '101', '101', '111', '001'], I: ['111', '010', '010', '010', '111'],
+    V: ['101', '101', '101', '101', '010'], A: ['010', '101', '111', '101', '101'], Z: ['111', '001', '010', '100', '111'], ' ': ['000', '000', '000', '000', '000'],
+  };
+  function pixelText(b, str, cx, y, col) {
+    const w = str.length * 4 - 1, x0 = Math.round(cx - w / 2);
+    const plot = (dx, dy, c) => { for (let i = 0; i < str.length; i++) { const g = GLYPH[str[i]] || GLYPH[' ']; for (let r = 0; r < 5; r++) for (let q = 0; q < 3; q++) if (g[r][q] === '1') b.set(x0 + i * 4 + q + dx, y + r + dy, c); } };
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) plot(dx, dy, [24, 12, 16]);
+    plot(0, 0, col);
+  }
+  function fxState(c, idx, t) {
+    let dx = 0, flash = null;
+    for (const f of c.fxs || []) {
+      if (f.who !== idx) continue;
+      const p = (t - f.t0) / f.dur;
+      if (p < 0 || p > 1) continue;
+      if (f.kind === 'lunge') dx += (idx === 0 ? 1 : -1) * Math.sin(p * Math.PI) * 12;
+      if (f.kind === 'hit') { dx += Math.floor(p * 10) % 2 ? 2 : -2; if (Math.floor(p * 6) % 2 === 0) flash = [255, 50, 50]; }
+      if (f.kind === 'heal' && Math.floor(p * 6) % 2 === 0) flash = [110, 255, 140];
+      if (f.kind === 'guard' && Math.floor(p * 4) % 2 === 0) flash = [160, 190, 255];
+      if (f.kind === 'charge' && Math.floor(p * 8) % 2 === 0) flash = [255, 170, 40];
+      if (f.kind === 'stun' && Math.floor(p * 6) % 2 === 0) flash = [255, 240, 120];
+    }
+    return { dx, flash };
+  }
+  function drawFxText(c, b, t) {
+    for (const f of c.fxs || []) {
+      if (f.kind !== 'text') continue;
+      const p = (t - f.t0) / f.dur;
+      if (p < 0 || p > 1) continue;
+      const it = c.sprites[f.who];
+      if (!it) continue;
+      pixelText(b, f.text, it.x, Math.round((it._top != null ? it._top : it.y - 40) - 8 - p * 10), f.col || [255, 255, 255]);
+    }
+  }
+  // registra efeitos (chamado pela interface durante o combate)
+  A.fx = function (sp, list, t) {
+    const c = sp && sp._c;
+    if (!c) return;
+    c.fxs = (c.fxs || []).filter((f) => t < f.t0 + f.dur + 0.1);
+    for (const f of list) c.fxs.push(Object.assign({ t0: t, dur: 0.5 }, f));
+  };
+  // troca o que aparece na cena (ex.: o inimigo do combate)
+  A.resetScene = function (sp) { if (sp && sp._c) sp._c = null; };
+  const tintCache = new Map();
+  function tinted(src, col) {
+    const key = (src.src || src._id || (src._id = Math.random().toString(36))) + col.join(',');
+    let cv = tintCache.get(key);
+    if (!cv) {
+      cv = document.createElement('canvas');
+      cv.width = src.naturalWidth || src.width; cv.height = src.naturalHeight || src.height;
+      const x = cv.getContext('2d');
+      x.drawImage(src, 0, 0);
+      x.globalCompositeOperation = 'source-atop';
+      x.fillStyle = 'rgba(' + col.join(',') + ',0.6)';
+      x.fillRect(0, 0, cv.width, cv.height);
+      tintCache.set(key, cv);
+    }
+    return cv;
+  }
+
   function frame(c, t, cv) {
     const b = new Buf(c.base.w, c.base.h);
     b.d.set(c.base.d);
-    for (const it of c.sprites) b.blit(it.spr, it.x - Math.round(it.spr.w / 2), it.y - it.spr.h + 1 + (it.bob && Math.floor(t * 1.6) % 2 ? 1 : 0));
+    c.sprites.forEach((it, i) => {
+      const f = fxState(c, i, t);
+      it._top = it.y - it.spr.h + 1;
+      b.blit(it.spr, it.x - Math.round(it.spr.w / 2) + Math.round(f.dx), it._top + (it.bob && Math.floor(t * 1.6) % 2 ? 1 : 0), false, f.flash);
+    });
     overlays(Object.assign({}, c.S, { over: c.S.over.filter((o) => o.k !== 'bunting' && !(o.k === 'fireworks' && c.S.sp.tod !== 'noite')) }), b, t);
+    drawFxText(c, b, t);
     if (c.mask) for (let i = 0; i < b.d.length; i++) if (!c.mask[i]) b.d[i] = 0;
     return b.toCanvas(cv);
   }
@@ -1345,9 +1416,10 @@
       cx.drawImage(tmp, 0, 0, outW, outH);
     }
     const bobOn = Math.floor(t * 1.6) % 2;
-    for (const it of c.sprites) {
+    c.sprites.forEach((it, idx) => {
       const e = it.file ? loadImg(it.file) : null;
       const bob = it.bob && bobOn ? k : 0;
+      const fs = fxState(c, idx, t), fdx = Math.round(fs.dx * k);
       if (e && e.ok) {
         // escala inteira para os pixels saírem uniformes
         const nw = e.img.naturalWidth, nh = e.img.naturalHeight;
@@ -1356,16 +1428,20 @@
         let sc = it.human ? sceneSc : Math.max(1, Math.min(3, Math.round((it.hgt * k) / nh)));
         while (sc > 1 && nw * sc > outW * 0.5) sc--;
         const iw = nw * sc, ih = nh * sc;
-        cx.drawImage(e.img, Math.round(it.x * k - iw / 2), Math.round(it.y * k - ih + bob), iw, ih);
+        it._top = it.y - ih / k;
+        cx.drawImage(fs.flash ? tinted(e.img, fs.flash) : e.img, Math.round(it.x * k - iw / 2) + fdx, Math.round(it.y * k - ih + bob), iw, ih);
       } else {
         if (!it._cv) { const b = new Buf(it.spr.w, it.spr.h); b.d.set(it.spr.d); it._cv = b.toCanvas(document.createElement('canvas')); }
         const ps = Math.max(1, Math.round(k));
-        cx.drawImage(it._cv, Math.round(it.x * k - (it.spr.w * ps) / 2), Math.round(it.y * k - (it.spr.h - 1) * ps + bob), it.spr.w * ps, it.spr.h * ps);
+        it._top = it.y - ((it.spr.h - 1) * ps) / k;
+        cx.drawImage(fs.flash ? tinted(it._cv, fs.flash) : it._cv, Math.round(it.x * k - (it.spr.w * ps) / 2) + fdx, Math.round(it.y * k - (it.spr.h - 1) * ps + bob), it.spr.w * ps, it.spr.h * ps);
       }
-    }
+    });
+    if (!bgE && (c.fxs || []).length) { const nb = new Buf(W, H); drawFxText(c, nb, t); nb.toCanvas(tmp); cx.drawImage(tmp, 0, 0, outW, outH); }
     if (bgE) {
       const b = new Buf(W, H);
       overlays(Object.assign({}, c.S, { over: c.S.over.filter((o) => SAFE_OVER.includes(o.k)) }), b, t);
+      drawFxText(c, b, t);
       b.toCanvas(tmp); cx.drawImage(tmp, 0, 0, outW, outH);
     }
     cx.globalCompositeOperation = 'destination-out';
@@ -1376,7 +1452,7 @@
   function usesImages(c) { return !!(c.bg || c.sprites.some((it) => it.file)); }
 
   A.render = function (cv, sp, t, s) {
-    if (!sp._c) Object.defineProperty(sp, '_c', { value: buildScene(sp, s, W, H), enumerable: false, writable: true });
+    if (!sp._c) { if (Object.prototype.hasOwnProperty.call(sp, '_c')) sp._c = buildScene(sp, s, W, H); else Object.defineProperty(sp, '_c', { value: buildScene(sp, s, W, H), enumerable: false, writable: true }); }
     const c = sp._c;
     if (!c._pre && typeof document !== 'undefined') { c._pre = true; if (c.bg) loadImg(c.bg); for (const it of c.sprites) if (it.file) loadImg(it.file); }
     return usesImages(c) ? frameImg(c, t, cv) : frame(c, t, cv);

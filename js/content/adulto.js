@@ -222,7 +222,7 @@
       id: 'fazenda_bicho', st: ST, req: job('fazendeiro'),
       text: 'Algo está matando suas galinhas à noite. Pegadas enormes no barro.',
       choices: [
-        { t: 'Esperar acordado com um forcado', check: { s: 'for', d: 5 }, ok: { t: 'Era {criatura}! Você a expulsou para sempre.', fx: { for: 1 }, title: 'Defensor do Galinheiro' }, fail: { t: '{criatura} te deixou marcado.', fx: { hp: -4 } } },
+        { t: 'Esperar acordado com um forcado', combat: { enemy: (s, c) => ({ name: c._cri.full.replace(/^uma? /, (m) => (m === 'um ' ? 'o ' : 'a ')), base: c._cri.base, adj: c._cri.adj, pow: c._cri.pow, tipo: c._cri.tipo }) }, ok: { t: 'Era {criatura}! Você a expulsou para sempre.', fx: { for: 1 }, title: 'Defensor do Galinheiro' }, fail: { t: '{criatura} levou metade das galinhas e te deixou marcado.', fx: { gold: -5 } } },
         { t: 'Montar uma armadilha', check: { s: 'int', d: 5 }, ok: { t: 'Pegou! Você vendeu o couro na cidade.', fx: { gold: 25 } }, fail: { t: 'Pegou foi o seu pé.', fx: { hp: -2 } } },
         { t: 'Mudar as galinhas de lugar', out: { t: 'Problema resolvido, mais ou menos.', fx: { int: 1 } } },
       ],
@@ -241,7 +241,7 @@
       id: 'aventura_masmorra', st: ST, req: job('aventureiro'), once: false, cd: 8,
       text: 'Uma masmorra esquecida foi descoberta sob {vila}. Aventureiros de toda parte estão chegando.',
       choices: [
-        { t: 'Ir na frente do grupo', check: { s: 'for', d: 6 }, ok: { t: 'Você derrotou o guardião e ficou com a melhor parte do tesouro.', fx: { gold: [40, 80] }, item: 'gen', title: 'Quebra-Masmorras' }, fail: { t: 'Uma armadilha de lâminas te pegou.', fx: { hp: -5 }, cause: 'uma armadilha numa masmorra' } },
+        { t: 'Ir na frente do grupo', combat: { enemy: (s) => ({ name: 'o guardião de pedra', base: 'golem de pedra', adj: 'antigo', pow: 6 + Math.floor(s.age / 25), tipo: 'monstro' }) }, ok: { t: 'Você derrotou o guardião e ficou com a melhor parte do tesouro.', fx: { gold: [40, 80] }, item: 'gen', title: 'Quebra-Masmorras' }, fail: { t: 'O guardião te expulsou da masmorra. Os outros seguiram sem você.' } },
         { t: 'Desarmar as armadilhas', check: { s: 'agi', d: 6 }, ok: { t: 'Graças a você ninguém morreu. Todos te pagaram.', fx: { gold: [30, 50], agi: 1 } }, fail: { t: 'Um dardo envenenado te acertou.', fx: { hp: -4 }, cause: 'veneno numa masmorra' } },
         { t: 'Decifrar os mapas', check: { s: 'int', d: 5 }, ok: { t: 'Você achou uma passagem secreta que ninguém viu.', fx: { gold: 60, int: 1 } }, fail: { t: 'Vocês andaram em círculos por dias.', fx: { hp: -2 } } },
       ],
@@ -251,7 +251,7 @@
       text: 'Um dragão chamado {dragao} desperta nas montanhas e exige tributo de {lugar}.',
       ctx: (s, c) => { c.dragao = G.gen.proper() + ', o ' + R.pick(['Rubro', 'Cinzento', 'Insaciável', 'Velho', 'Sem Asas', 'de Cristal']); },
       choices: [
-        { t: 'Enfrentar o dragão', check: { s: 'for', d: 9 }, ok: { t: 'Contra todas as chances, você matou {dragao}! Seu nome será cantado por séculos.', fx: { gold: 300 }, title: 'Mata-Dragões' }, fail: { t: 'O fogo do dragão foi a última coisa que você viu.', die: 'queimado por {dragao}' } },
+        { t: 'Enfrentar o dragão', combat: { enemy: (s, c) => ({ name: c.dragao, base: '__dragao', adj: 'ancião', pow: 9, tipo: 'monstro', boss: true }) }, ok: { t: 'Contra todas as chances, você matou {dragao}! Seu nome será cantado por séculos.', fx: { gold: 300 }, title: 'Mata-Dragões' }, fail: { t: 'Chamuscado e humilhado, você fugiu. {dragao} riu de você do alto da montanha.' } },
         { t: 'Negociar com o dragão', check: { s: 'car', d: 8 }, ok: { t: '{dragao} achou você divertido e aceitou trocar o tributo por histórias.', fx: { car: 2, int: 1 }, title: 'Amigo de Dragões' }, fail: { t: '{dragao} não estava com fome de conversa.', fx: { hp: -6 }, cause: 'as garras de {dragao}' } },
         { t: 'Roubar o tesouro enquanto ele dorme', check: { s: 'agi', d: 8 }, ok: { t: 'Você saiu com um saco de ouro e um ovo de dragão!', fx: { gold: 200 }, set: 'ovo_dragao', title: 'Ladrão de Dragões' }, fail: { t: '{dragao} abriu um olho.', fx: { hp: -7 }, cause: 'o despertar de {dragao}' } },
         { t: 'Fugir de {lugar}', out: { t: 'Sábia decisão. Viver é bom.', travel: true } },

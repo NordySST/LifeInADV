@@ -111,6 +111,11 @@
     death: () => seq([69, 67, 64, 60, null, 57], 0.32, { w: 'triangle', v: 0.3, r: 0.4, dur: 0.3 }),
     stat: () => seq([76, 83], 0.05, { w: 'p12', v: 0.1 }),
     page: () => noise(sfxBus, ac.currentTime, 0.06, { f: 3000, v: 0.12 }),
+    slash: () => { const t = ac.currentTime; noise(sfxBus, t, 0.12, { type: 'bandpass', f: 2500, fTo: 600, v: 0.3 }); },
+    hit: () => { const t = ac.currentTime; noise(sfxBus, t, 0.1, { f: 400, type: 'lowpass', v: 0.4 }); tone(sfxBus, 180, t, 0.08, { w: 'p50', v: 0.15, slide: 60 }); },
+    miss: () => noise(sfxBus, ac.currentTime, 0.15, { type: 'bandpass', f: 1200, fTo: 3500, v: 0.12 }),
+    warn: () => seq([62, 61, 62, 61], 0.09, { w: 'p25', v: 0.14 }),
+    victory: () => seq([67, 72, 76, 79, null, 76, 79, 84], 0.09, { w: 'p25', v: 0.16, r: 0.12 }),
   };
   Snd.play = function (name) {
     if (!pref.sfx || !init() || !SFX[name]) return;
@@ -126,6 +131,7 @@
     adu: { scale: 'dorian', bpm: 118, drums: 2, lead: 'p50', arp: 'p12', prog: [[0, 3, 0, 4], [0, 6, 5, 4], [0, 2, 3, 4]] },
     vel: { scale: 'minor', bpm: 78, drums: 0, lead: 'triangle', arp: 'p12', prog: [[0, 5, 3, 4], [0, 3, 6, 2], [0, 5, 6, 4]] },
     morte: { scale: 'minor', bpm: 62, drums: 0, lead: 'triangle', arp: null, prog: [[0, 5, 6, 4], [0, 3, 4, 0]] },
+    luta: { scale: 'minor', bpm: 152, drums: 2, lead: 'p25', arp: 'p12', prog: [[0, 5, 6, 4], [0, 6, 5, 4], [0, 3, 5, 4]] },
   };
   const RHYTHMS = [
     [1, 2, 0, 0, 1, 0, 1, 0, 1, 2, 2, 2, 0, 0, 1, 0],

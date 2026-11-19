@@ -197,3 +197,25 @@ h4 { margin: 14px 0 4px; font: 700 .78rem var(--pixel); text-transform: uppercas
   body { font-size: 17.5px; }
   .st { min-width: 0; padding: 2px 3px; }
 }
+
+/* ---------- combate ---------- */
+.battle { display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 4px; border: 2px solid rgba(106, 78, 50, .45); border-radius: 4px; background: rgba(255, 248, 230, .32); }
+.battle.boss { border-color: var(--red); box-shadow: inset 0 0 0 1px rgba(176, 48, 42, .25); }
+.bt-row { display: grid; grid-template-columns: minmax(0, 1fr) 46% auto; align-items: center; gap: 8px; }
+.bt-name { font-weight: 700; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bt-row b { font: 700 .78rem var(--pixel); min-width: 38px; text-align: right; }
+.bt-bar { height: 10px; background: rgba(40, 26, 14, .25); border: 2px solid #3a2614; border-radius: 2px; overflow: hidden; }
+.bt-bar div { height: 100%; transition: width .35s steps(6); }
+.bt-bar.hero div { background: repeating-linear-gradient(90deg, #3c8a32 0 6px, #4ea040 6px 8px); }
+.bt-bar.foe div { background: repeating-linear-gradient(90deg, #b0302a 0 6px, #c84634 6px 8px); }
+.tag.boss { color: #fff; background: var(--red); padding: 0 5px; border-radius: 2px; font: 700 .62rem var(--pixel); letter-spacing: .08em; vertical-align: 2px; }
+.bt-log { display: flex; flex-direction: column; gap: 2px; max-height: 9.5em; overflow-y: auto; margin-top: 4px; }
+.bt-line { margin: 0; font-size: .95rem; line-height: 1.35; padding-left: 10px; border-left: 2px solid rgba(106, 78, 50, .35); animation: in .25s steps(3) both; }
+.bt-line.good { color: var(--green); border-color: var(--green); }
+.bt-line.bad { color: var(--red); border-color: var(--red); }
+.bt-prompt { margin: 4px 0 0; font-style: italic; color: var(--ink-soft); }
+.bt-prompt:empty { display: none; }
+.bopt small { display: block; font-size: .78rem; color: var(--ink-soft); font-style: italic; }
+.bopt[disabled] { opacity: .45; cursor: default; }
+.bt-sum summary { cursor: pointer; color: var(--ink-soft); font-style: italic; font-size: .9rem; }
+.bt-sum .bt-line { animation: none; }

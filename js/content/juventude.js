@@ -80,7 +80,7 @@
       id: 'duelo_rival', st: ST, req: (s) => s.f.rival,
       text: '{rival}, sua velha rixa de infância, te desafia na frente de toda a vila. Agora vocês são quase adultos.',
       choices: [
-        { t: 'Aceitar o duelo', check: { s: 'for', d: 5 }, ok: { t: 'Você venceu. {rival} te estendeu a mão. Talvez... respeito?', fx: { for: 1, car: 1 }, set: 'rival_respeito' }, fail: { t: '{rival} venceu e cuspiu no chão ao seu lado.', fx: { hp: -3 }, set: 'rival_odio' } },
+        { t: 'Aceitar o duelo', combat: { enemy: (s) => ({ name: s.ppl.rival, base: 'bandoleiro', adj: 'teimoso', pow: 4, tipo: 'gente' }) }, ok: { t: 'Você venceu. {rival} te estendeu a mão. Talvez... respeito?', fx: { for: 1, car: 1 }, set: 'rival_respeito' }, fail: { t: '{rival} venceu e cuspiu no chão ao seu lado.', set: 'rival_odio' } },
         { t: 'Propor uma corrida em vez disso', check: { s: 'agi', d: 5 }, ok: { t: 'Você chegou primeiro e {rival} ficou sem palavras.', fx: { agi: 1 } }, fail: { t: 'Você perdeu por um passo.', fx: { car: -1 } } },
         { t: 'Propor uma trégua', check: { s: 'car', d: 5 }, ok: { t: 'Vocês riram das bobagens de infância. Quem diria, viraram amigos.', unset: 'rival', set: 'rival_amigo', fx: { car: 1 } }, fail: { t: '{rival} achou que era covardia.', set: 'rival_odio' } },
       ],
@@ -89,7 +89,7 @@
       id: 'bandidos_estrada', st: ['jov', 'adu'], once: false, cd: 20,
       text: 'Bandidos de lenço no rosto fecham a estrada para {vila}. "A bolsa ou a vida!"',
       choices: [
-        { t: 'Lutar', check: { s: 'for', d: 5 }, ok: { t: 'Você derrubou dois e os outros fugiram. Eles deixaram uma sacola para trás.', fx: { gold: [10, 30] } }, fail: { t: 'Você levou uma surra e eles levaram tudo.', fx: { hp: -4, gold: -20 }, cause: 'emboscada de bandidos' } },
+        { t: 'Lutar', combat: { enemy: (s) => ({ name: 'o líder dos bandidos', base: 'salteador', adj: 'astuto', pow: 3 + Math.floor(s.age / 20), tipo: 'gente' }) }, ok: { t: 'Você derrubou o líder e os outros fugiram. Eles deixaram uma sacola para trás.', fx: { gold: [10, 30] } }, fail: { t: 'Você caiu, e eles levaram tudo o que você tinha.', fx: { gold: -20 } } },
         { t: 'Entregar a bolsa', out: { t: 'Eles levaram suas moedas e riram da sua cara.', fx: { gold: -15 } } },
         { t: 'Fugir pelo mato', check: { s: 'agi', d: 4 }, ok: { t: 'Você sumiu entre as árvores.', fx: { agi: 1 } }, fail: { t: 'Uma flecha raspou seu ombro.', fx: { hp: -2 } } },
         { t: 'Convencê-los de que você é um deles', check: { s: 'car', d: 6 }, ok: { t: 'Eles te convidaram para dividir o jantar e te contaram onde escondem o saque.', set: 'esconderijo_bandidos', fx: { car: 1 } }, fail: { t: 'Eles riram. Depois bateram.', fx: { hp: -3, gold: -10 } } },
