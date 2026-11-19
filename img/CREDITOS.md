@@ -8,7 +8,7 @@ As imagens foram recortadas, combinadas em cenas 16:10 e, em alguns casos, espel
 
 ## Personagem principal
 
-- `pessoas/heroi-crianca.png`, `heroi-jovem.png`, `heroi-adulto.png`, `heroi-velho.png` e os `retrato-*.png`: criados pelo autor do jogo com auxílio de IA (ChatGPT), reduzidos e ajustados à paleta do jogo.
+- `pessoas/heroi-*.png`, `heroi-f-*.png` (heroína) e os `retrato-*.png` / `retrato-f-*.png`: criados pelo autor do jogo com auxílio de IA (ChatGPT), reduzidos e ajustados à paleta do jogo.
 
 ## Luis Zuno (ansimuz) — CC0
 
