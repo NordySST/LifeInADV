@@ -6,6 +6,10 @@ Mesmo assim, registramos a origem, como gentileza aos autores.
 
 As imagens foram recortadas, combinadas em cenas 16:10 e, em alguns casos, espelhadas.
 
+## Personagem principal
+
+- `pessoas/heroi-crianca.png`, `heroi-jovem.png`, `heroi-adulto.png`, `heroi-velho.png` e os `retrato-*.png`: criados pelo autor do jogo com auxílio de IA (ChatGPT), reduzidos e ajustados à paleta do jogo.
+
 ## Luis Zuno (ansimuz) — CC0
 
 - [Forest Background](https://opengameart.org/content/forest-background): `cenas/floresta-tarde.png`

@@ -170,7 +170,7 @@
         <button class="opt" id="re">${ic('orn', 'orn')}<span>Sortear outra vida</span></button>
         <button class="opt" id="back">${ic('orn', 'orn')}<span>Voltar</span></button>
       </nav>`, 'create');
-    A.portrait(S.look, null, 'inf').toCanvas($('#pcv'));
+    A.portraitCanvas($('#pcv'), S, 'inf');
     on('#go', () => { SND.play('birth'); next(); });
     on('#re', () => { SND.play('page'); creation(); });
     on('#back', () => { SND.play('select'); menu(); });
@@ -371,7 +371,7 @@
     const cv = $('#gcv');
     A.renderGrave(cv, dead, 0);
     animate([{ cv, draw: (c, t) => A.renderGrave(c, dead, t) }]);
-    A.portrait(dead.look, dead.job, G.stage(dead)).toCanvas($('#dpcv'));
+    A.portraitCanvas($('#dpcv'), dead);
     on('#again', () => { SND.play('confirm'); creation(); });
     on('#read', () => { SND.play('page'); const m = modal(`<h3>A vida de ${esc(dead.name)}</h3><div class="log">${logHtml(dead)}</div><nav class="opts"><button class="opt" id="close">${ic('orn', 'orn')}<span>Fechar</span></button></nav>`); on('#close', () => m.remove(), m); });
     on('#tomenu', () => { SND.play('select'); menu(); });

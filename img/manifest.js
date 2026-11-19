@@ -54,12 +54,20 @@ globalThis.G.IMG = {
  ],
  "objetos": [],
  "pessoas": [
+  "heroi-adulto.png",
+  "heroi-crianca.png",
+  "heroi-jovem.png",
+  "heroi-velho.png",
   "mercador.png",
   "par.png",
   "pessoa-2.png",
   "pessoa-3.png",
   "pessoa-4.png",
   "pessoa.png",
+  "retrato-adulto.png",
+  "retrato-crianca.png",
+  "retrato-jovem.png",
+  "retrato-velho.png",
   "viajante-2.png",
   "viajante.png"
  ]

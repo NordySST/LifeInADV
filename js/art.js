@@ -1232,8 +1232,8 @@
     const fx = Math.round(w * 0.68);
     if (s && !sp.noHero) {
       const st = G.stage(s), sx = s.look && s.look.sexo === 'f' ? 'f' : 'm';
-      const hf = typeof document !== 'undefined' && st !== 'inf' ? pickFile('pessoas', st === 'vel' ? ['heroi-velho', 'heroi-' + s.job + '-' + sx, 'heroi-' + s.job, 'heroi-' + sx, 'heroi'] : ['heroi-' + s.job + '-' + sx, 'heroi-' + (s.job || 'x'), s.job ? null : 'heroi-' + sx, 'heroi'], A.hash(s.name || '')) : null;
-      sprites.push({ spr: personSprite(s.look, s.job, st), x: Math.round(w * 0.3), y: ground, bob: 0, ground, file: hf, hgt: 44 });
+      const hf = typeof document !== 'undefined' ? heroFile(s, st) : null;
+      sprites.push({ spr: personSprite(s.look, s.job, st), x: Math.round(w * 0.3), y: ground, bob: 0, ground, file: hf, hgt: 48, human: true });
     }
     const f = sp.fig;
     if (f) {
@@ -1247,7 +1247,7 @@
       else if (f.t === 'gato') spr2 = mirror(rasterize(quad({ bl: 5.5, bh: 3.2, leg: 4.5, hr: 2.8, sn: 0.8, ears: 'pt', tail: 'up', main: '#26222c', eyes: 'y' }), SPR));
       else if (f.t === 'coracao') { spr2 = mirror(personSprite(A.newLook('par' + sp.seed, s && s.look.sexo === 'm' ? 'f' : 'm'), null, 'jov', { cloth: '#8a3a5a' })); S.over.push({ k: 'hearts', x: Math.round(w * 0.49), y: ground - 42 }); }
       else { spr2 = objectSprite(f.t, s && s.look); bob = 0; if (f.t === 'livro' || f.t === 'cristal') { lift = f.t === 'livro' ? 10 : 0; S.over.push({ k: 'sparkle', x: fx, y: ground - 18 }); } if (f.t === 'fogueira') S.over.push({ k: 'fire', x: fx, y: ground - 3, s: 0.8 }); }
-      if (spr2) sprites.push({ spr: spr2, x: fx, y: ground - lift, bob, ground, file: typeof document !== 'undefined' ? figFile(sp) : null, hgt: figHeight(sp) });
+      if (spr2) sprites.push({ spr: spr2, x: fx, y: ground - lift, bob, ground, file: typeof document !== 'undefined' ? figFile(sp) : null, hgt: figHeight(sp), human: f.t === 'pessoa' || f.t === 'coracao' });
     }
     for (const it of sprites) { const gw = it.spr.w * 0.38; for (let x = -gw; x < gw; x++) for (let y = -1; y <= 1; y++) b.mix(it.x + x, ground + y, [10, 8, 16], 0.32 * (1 - Math.abs(x) / gw)); }
     return { base: b, S, sprites, mask: tornMask(w, h, sp.seed, 'lrtb'), seed: sp.seed, tod: sp.tod, bg: typeof document !== 'undefined' ? sceneFile(sp) : null, bgExact: typeof document !== 'undefined' ? sceneExact(sp) : true };
@@ -1351,7 +1351,9 @@
       if (e && e.ok) {
         // escala inteira para os pixels saírem uniformes
         const nw = e.img.naturalWidth, nh = e.img.naturalHeight;
-        let sc = Math.max(1, Math.floor((it.hgt * k) / nh + 0.3));
+        // pessoas usam a mesma escala na cena toda; criaturas e objetos crescem conforme o tamanho desejado
+        const sceneSc = !bgE || outH >= 260 ? 2 : 1;
+        let sc = it.human ? sceneSc : Math.max(1, Math.min(3, Math.round((it.hgt * k) / nh)));
         while (sc > 1 && nw * sc > outW * 0.5) sc--;
         const iw = nw * sc, ih = nh * sc;
         cx.drawImage(e.img, Math.round(it.x * k - iw / 2), Math.round(it.y * k - ih + bob), iw, ih);
@@ -1375,7 +1377,9 @@
 
   A.render = function (cv, sp, t, s) {
     if (!sp._c) Object.defineProperty(sp, '_c', { value: buildScene(sp, s, W, H), enumerable: false, writable: true });
-    return usesImages(sp._c) ? frameImg(sp._c, t, cv) : frame(sp._c, t, cv);
+    const c = sp._c;
+    if (!c._pre && typeof document !== 'undefined') { c._pre = true; if (c.bg) loadImg(c.bg); for (const it of c.sprites) if (it.file) loadImg(it.file); }
+    return usesImages(c) ? frameImg(c, t, cv) : frame(c, t, cv);
   };
 
   /* ======================= escolha da cena para cada evento ======================= */
@@ -1511,7 +1515,37 @@
     for (let i = 0; i < size; i++) { b.set(i, 0, [26, 15, 20]); b.set(i, size - 1, [26, 15, 20]); b.set(0, i, [26, 15, 20]); b.set(size - 1, i, [26, 15, 20]); }
     return b;
   };
-  A.portraitCanvas = (cv, s) => A.portrait(s.look, s.job, G.stage(s)).toCanvas(cv);
+  // herói desenhado (imagens em img/pessoas): heroi-<fase>[-<ofício>], com versão feminina opcional heroi-f-<fase>
+  const STG = { inf: 'crianca', jov: 'jovem', adu: 'adulto', vel: 'velho' };
+  function heroNames(kind, s, st) {
+    const g = STG[st], j = s && s.job, f = s && s.look && s.look.sexo === 'f';
+    const n = [];
+    if (f) { if (j) n.push(kind + '-f-' + g + '-' + j); n.push(kind + '-f-' + g); }
+    if (j) n.push(kind + '-' + g + '-' + j);
+    if (j && kind === 'heroi' && (st === 'adu' || st === 'jov')) n.push('heroi-' + j);
+    n.push(kind + '-' + g);
+    if (kind === 'heroi' && st !== 'inf') n.push('heroi');
+    return n;
+  }
+  function heroFile(s, st) { return pickFile('pessoas', heroNames('heroi', s, st), 0); }
+  // retrato: usa o rosto desenhado da mesma fase, se existir; senão o retrato gerado
+  A.portraitCanvas = function (cv, s, stOverride) {
+    const st = stOverride || G.stage(s);
+    const job = stOverride === 'inf' ? null : s.job;
+    A.portrait(s.look, job, st).toCanvas(cv);
+    const file = typeof document !== 'undefined' && pickFile('pessoas', heroNames('retrato', s, st), 0);
+    if (!file) return cv;
+    const e = loadImg(file);
+    const paint = () => {
+      const b = new Buf(48, 48), bg = rampFrom(s.look.bg || '#3a4466');
+      for (let y = 0; y < 48; y++) for (let x = 0; x < 48; x++) { const d = Math.hypot(x - 18, y - 16) / 40; b.set(x, y, shade(bg, 0.75 - d * 0.7 + (NZ.n2(x * 0.3, y * 0.3) - 0.5) * 0.15, x, y)); }
+      b.toCanvas(cv);
+      const cx = cv.getContext('2d'); cx.imageSmoothingEnabled = false; cx.drawImage(e.img, 0, 0, 48, 48);
+      cx.fillStyle = '#1a0f14'; cx.fillRect(0, 0, 48, 1); cx.fillRect(0, 47, 48, 1); cx.fillRect(0, 0, 1, 48); cx.fillRect(47, 0, 1, 48);
+    };
+    if (e.ok) paint(); else e.img.addEventListener('load', () => { if (cv.isConnected) paint(); }, { once: true });
+    return cv;
+  };
 
   /* ======================= textura de papel ======================= */
   let paperURL = null;

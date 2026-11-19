@@ -28,7 +28,10 @@ O nome diz onde a imagem é usada. Formatos aceitos: `.png`, `.webp`, `.jpg`.
 | Pessoa | `pessoas/<papel>.png` | `pessoa`, `viajante`, `mercador`, `crianca`, `par` |
 | Objeto | `objetos/<objeto>.png` | `bau`, `cristal`, `livro`, `berco`, `quadro`, `tumulo`, `caldeirao`, `fogueira`, `moedas` |
 | Capa do menu | `cenas/titulo.png` | ilustração vertical (proporção 5:7) |
-| Herói (personagem do jogador) | `pessoas/heroi-<ofício>.png`, `pessoas/heroi-velho.png`, `pessoas/heroi-f.png`, `pessoas/heroi.png` | **virado para a direita**; ofícios: `mago`, `soldado`, `ladrao`, `mercador`, `sacerdote`, `bardo`, `fazendeiro`, `aventureiro` |
+| Herói por fase da vida | `pessoas/heroi-crianca.png`, `heroi-jovem.png`, `heroi-adulto.png`, `heroi-velho.png` | **virado para a direita**, fundo transparente, pés na borda de baixo; adulto com ~54 px de altura |
+| Herói por ofício (opcional) | `pessoas/heroi-<fase>-<ofício>.png` | ex.: `heroi-adulto-mago.png`; ofícios: `mago`, `soldado`, `ladrao`, `mercador`, `sacerdote`, `bardo`, `fazendeiro`, `aventureiro` |
+| Heroína (opcional) | `pessoas/heroi-f-<fase>.png`, `heroi-f-<fase>-<ofício>.png` | usada nas vidas de personagens mulheres |
+| Retrato do topo da tela | `pessoas/retrato-<fase>.png` (e `retrato-f-<fase>.png`) | 48×48, rosto e ombros, fundo transparente |
 
 Nomes em minúsculas, sem acento, com hífen no lugar de espaço.
 
