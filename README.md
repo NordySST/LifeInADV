@@ -43,6 +43,13 @@ Nada de imagens ou áudios externos: tudo é gerado por código (`js/art.js` e `
 - **Animações**: fogo, velas, estrelas, brilho na água, chuva, neve, névoa, fumaça, vaga-lumes e poeira na luz.
 - **Som**: sintetizador chiptune em WebAudio com eco, efeitos sonoros e música procedural própria para cada fase de cada vida.
 
+## Usando imagens próprias
+
+O jogo aceita ilustrações prontas (feitas por um artista ou por ferramentas de geração de imagem) no lugar da arte gerada.
+Coloque os arquivos em `img/cenas`, `img/criaturas`, `img/pessoas` e `img/objetos` com os nomes certos e rode `npm run manifesto`.
+Onde não houver imagem, a arte gerada continua valendo. Veja **[img/LEIA-ME.md](img/LEIA-ME.md)** para nomes, tamanhos, estilo,
+modelo de pedido para geradores de imagem e a lista do que desenhar primeiro (`npm run prioridades`).
+
 ## Estrutura
 
 ```
@@ -56,6 +63,9 @@ js/audio.js             sintetizador, efeitos sonoros e música procedural
 js/ui.js                telas e interação
 fonts/                  fontes Alegreya e Pixelify Sans (OFL)
 tools/simular.js        simulador para testar conteúdo e medir repetição
+tools/prioridades-arte.js  o que mais aparece no jogo (para priorizar desenhos)
+tools/gerar-manifesto.js   lista as imagens de img/ para o jogo
+img/                    imagens opcionais (veja img/LEIA-ME.md)
 sw.js, manifest...      PWA (instalação e modo offline)
 ```
 

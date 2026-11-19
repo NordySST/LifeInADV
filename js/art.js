@@ -1234,10 +1234,10 @@
       else if (f.t === 'gato') spr2 = mirror(rasterize(quad({ bl: 5.5, bh: 3.2, leg: 4.5, hr: 2.8, sn: 0.8, ears: 'pt', tail: 'up', main: '#26222c', eyes: 'y' }), SPR));
       else if (f.t === 'coracao') { spr2 = mirror(personSprite(A.newLook('par' + sp.seed, s && s.look.sexo === 'm' ? 'f' : 'm'), null, 'jov', { cloth: '#8a3a5a' })); S.over.push({ k: 'hearts', x: Math.round(w * 0.49), y: ground - 42 }); }
       else { spr2 = objectSprite(f.t, s && s.look); bob = 0; if (f.t === 'livro' || f.t === 'cristal') { lift = f.t === 'livro' ? 10 : 0; S.over.push({ k: 'sparkle', x: fx, y: ground - 18 }); } if (f.t === 'fogueira') S.over.push({ k: 'fire', x: fx, y: ground - 3, s: 0.8 }); }
-      if (spr2) sprites.push({ spr: spr2, x: fx, y: ground - lift, bob });
+      if (spr2) sprites.push({ spr: spr2, x: fx, y: ground - lift, bob, ground, file: typeof document !== 'undefined' ? figFile(sp) : null, hgt: figHeight(sp) });
     }
     for (const it of sprites) { const gw = it.spr.w * 0.38; for (let x = -gw; x < gw; x++) for (let y = -1; y <= 1; y++) b.mix(it.x + x, ground + y, [10, 8, 16], 0.32 * (1 - Math.abs(x) / gw)); }
-    return { base: b, S, sprites, mask: tornMask(w, h, sp.seed, 'lrtb') };
+    return { base: b, S, sprites, mask: tornMask(w, h, sp.seed, 'lrtb'), seed: sp.seed, bg: typeof document !== 'undefined' ? sceneFile(sp) : null };
   }
 
   function frame(c, t, cv) {
@@ -1249,9 +1249,111 @@
     return b.toCanvas(cv);
   }
 
+  /* ======================= imagens prontas (opcional) =======================
+   * Se existir uma imagem em img/ (listada em img/manifest.js) ela substitui a arte gerada.
+   * Onde não houver imagem, continua valendo a arte gerada por código.
+   */
+  const slug = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  A.slug = slug;
+  const fileName = (f) => (typeof f === 'string' ? f : f.n);
+  const srcOf = (dir, f) => (typeof f === 'string' ? 'img/' + dir + '/' + f : f.src);
+  function pickFile(dir, names, seed) {
+    const list = (G.IMG && G.IMG[dir]) || [];
+    if (!list.length) return null;
+    for (const n of names) {
+      if (!n) continue;
+      const re = new RegExp('^' + n + '(-\\d+)?\\.(png|webp|jpe?g|gif)$', 'i');
+      const m = list.filter((f) => re.test(fileName(f)));
+      if (m.length) return srcOf(dir, m[(seed >>> 0) % m.length]);
+    }
+    return null;
+  }
+  A.pickFile = pickFile;
+  const sceneName = (sp) => (sp.kind === 'outdoor' ? sp.biome : sp.kind);
+  function sceneFile(sp) { const base = sceneName(sp); return pickFile('cenas', [base + '-' + sp.tod, base], sp.seed || 0); }
+  function figFile(sp) {
+    const f = sp.fig; if (!f) return null;
+    const seed = sp.seed || 0;
+    if (f.t === 'criatura') { const b = slug(f.c.base === '__dragao' ? 'dragao' : f.c.base); return pickFile('criaturas', [b + '-' + slug(f.c.adj || ''), b], seed); }
+    if (f.t === 'dragao') return pickFile('criaturas', ['dragao'], seed);
+    if (f.t === 'fantasma') return pickFile('criaturas', ['fantasma', 'afogado'], seed);
+    if (['cao', 'cavalo', 'gato'].includes(f.t)) return pickFile('criaturas', [f.t], seed);
+    if (f.t === 'pessoa') { const o = f.opt || {}; return pickFile('pessoas', [o.stage === 'inf' ? 'crianca' : o.job === 'mercador' ? 'mercador' : o.pack ? 'viajante' : null, 'pessoa'], seed); }
+    if (f.t === 'coracao') return pickFile('pessoas', ['par', 'pessoa'], seed);
+    return pickFile('objetos', [f.t], seed);
+  }
+  // altura (em pixels da cena de 192×120) com que cada imagem é desenhada
+  function figHeight(sp) {
+    const f = sp.fig;
+    if (f.t === 'criatura') return /drag/.test(f.c.base) ? 82 : clamp(30 + (f.c.pow || 3) * 5, 30, 80);
+    return { dragao: 82, fantasma: 46, cao: 26, cavalo: 50, gato: 18, pessoa: f.opt && f.opt.stage === 'inf' ? 38 : 50, coracao: 50, tumulo: 30, quadro: 36, fogueira: 16, moedas: 12, berco: 22, bau: 22, cristal: 30, caldeirao: 24, livro: 18 }[f.t] || 30;
+  }
+
+  const imgCache = {};
+  function loadImg(src) {
+    let e = imgCache[src];
+    if (!e) {
+      e = imgCache[src] = { img: new Image(), ok: false, bad: false };
+      e.img.onload = () => { e.ok = true; };
+      e.img.onerror = () => { e.bad = true; };
+      e.img.src = src;
+    }
+    return e;
+  }
+  const maskCv = {};
+  function tornMaskCanvas(seed) {
+    const key = seed % 5;
+    if (maskCv[key]) return maskCv[key];
+    const m = tornMask(W, H, seed, 'lrtb'), b = new Buf(W, H);
+    for (let i = 0; i < m.length; i++) if (!m[i]) b.d[i] = 0xff000000;
+    return (maskCv[key] = b.toCanvas(document.createElement('canvas')));
+  }
+  const SAFE_OVER = ['rain', 'snow', 'motes', 'sparkle', 'hearts'];
+  function frameImg(c, t, cv) {
+    let bgE = c.bg ? loadImg(c.bg) : null;
+    if (bgE && bgE.bad) { c.bg = null; bgE = null; }
+    if (bgE && !bgE.ok) return frame(c, t, cv);
+    const outW = bgE ? Math.max(W, Math.min(bgE.img.naturalWidth, 960)) : W * 2, outH = Math.round((outW * H) / W), k = outW / W;
+    if (cv.width !== outW || cv.height !== outH) { cv.width = outW; cv.height = outH; }
+    const cx = cv.getContext('2d');
+    cx.imageSmoothingEnabled = false;
+    cx.globalCompositeOperation = 'source-over';
+    cx.clearRect(0, 0, outW, outH);
+    const tmp = c._tmp || (c._tmp = document.createElement('canvas'));
+    if (bgE) {
+      cx.drawImage(bgE.img, 0, 0, outW, outH);
+      for (const it of c.sprites) { cx.fillStyle = 'rgba(10,8,16,.28)'; cx.beginPath(); cx.ellipse(it.x * k, (it.ground || it.y) * k, (it.hgt || it.spr.h) * 0.45 * k, 2 * k, 0, 0, Math.PI * 2); cx.fill(); }
+    } else {
+      const b = new Buf(W, H); b.d.set(c.base.d); overlays(c.S, b, t); b.toCanvas(tmp);
+      cx.drawImage(tmp, 0, 0, outW, outH);
+    }
+    const bobOn = Math.floor(t * 1.6) % 2;
+    for (const it of c.sprites) {
+      const e = it.file ? loadImg(it.file) : null;
+      const bob = it.bob && bobOn ? k : 0;
+      if (e && e.ok) {
+        const ih = it.hgt * k, iw = (ih * e.img.naturalWidth) / e.img.naturalHeight;
+        cx.drawImage(e.img, Math.round(it.x * k - iw / 2), Math.round(it.y * k - ih + bob), Math.round(iw), Math.round(ih));
+      } else {
+        if (!it._cv) { const b = new Buf(it.spr.w, it.spr.h); b.d.set(it.spr.d); it._cv = b.toCanvas(document.createElement('canvas')); }
+        cx.drawImage(it._cv, Math.round((it.x - Math.round(it.spr.w / 2)) * k), Math.round((it.y - it.spr.h + 1) * k + bob), it.spr.w * k, it.spr.h * k);
+      }
+    }
+    if (bgE) {
+      const b = new Buf(W, H);
+      overlays(Object.assign({}, c.S, { over: c.S.over.filter((o) => SAFE_OVER.includes(o.k)) }), b, t);
+      b.toCanvas(tmp); cx.drawImage(tmp, 0, 0, outW, outH);
+    }
+    cx.globalCompositeOperation = 'destination-out';
+    cx.drawImage(tornMaskCanvas(c.seed || 0), 0, 0, outW, outH);
+    cx.globalCompositeOperation = 'source-over';
+    return cv;
+  }
+  function usesImages(c) { return !!(c.bg || c.sprites.some((it) => it.file)); }
+
   A.render = function (cv, sp, t, s) {
     if (!sp._c) Object.defineProperty(sp, '_c', { value: buildScene(sp, s, W, H), enumerable: false, writable: true });
-    return frame(sp._c, t, cv);
+    return usesImages(sp._c) ? frameImg(sp._c, t, cv) : frame(sp._c, t, cv);
   };
 
   /* ======================= escolha da cena para cada evento ======================= */
@@ -1270,13 +1372,13 @@
     [/fazenda|colheita|arado|galinha/, 'outdoor', { t: 'fogueira' }],
     [/nasc|beb[eê]|irmao_nasce|filho_nasce|neto|berço/, 'casa', { t: 'berco' }],
     [/casamento|amor|beijo|romance|paix/, 'outdoor', { t: 'coracao' }, 'tarde'],
-    [/c[aã]o|cachorro/, 'outdoor', { t: 'cao' }],
-    [/gato/, 'casa', { t: 'gato' }],
+    [/\bc[aã]o\b|cachorro|vira-lata/, 'outdoor', { t: 'cao' }],
+    [/\bgato\b/, 'casa', { t: 'gato' }],
     [/cavalo/, 'outdoor', { t: 'cavalo' }],
     [/tesouro|heran[cç]a|mapa|ba[uú]/, 'outdoor', { t: 'bau' }],
     [/bruxa|feiticeira|maldi[cç]/, 'outdoor', { t: 'caldeirao' }, 'noite'],
     [/sonho|vidente|profecia|estrela/, 'sonho', { t: 'cristal' }, 'sonho'],
-    [/doen[cç]a|febre|peste|sa[uú]de|testamento|mem[oó]rias|casa|fam[ií]lia|prim|crise/, 'casa'],
+    [/doen[cç]a|febre|peste|sa[uú]de|testamento|mem[oó]rias|\bcasa\b|fam[ií]lia|primeiros_passos|primeira_palavra|crise/, 'casa'],
     [/rei|corte|conselho|convite/, 'cidade'],
     [/tempestade|chuva|terremoto|eclipse|incendio/, 'outdoor', null, 'tempestade', 'chuva'],
   ];
@@ -1314,6 +1416,11 @@
   /* ======================= título e túmulo ======================= */
   const titleCache = {};
   A.renderTitle = function (cv, t, seed) {
+    const capa = typeof document !== 'undefined' && pickFile('cenas', ['titulo'], seed);
+    if (capa) {
+      const e = loadImg(capa);
+      if (e.ok) { const w = Math.min(e.img.naturalWidth, 720), h = Math.round((w * e.img.naturalHeight) / e.img.naturalWidth); if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; } const cx = cv.getContext('2d'); cx.imageSmoothingEnabled = false; cx.drawImage(e.img, 0, 0, w, h); return cv; }
+    }
     const key = 'T' + seed;
     if (!titleCache[key]) {
       const w = 120, h = 168, b = new Buf(w, h);
@@ -1337,7 +1444,7 @@
 
   A.renderGrave = function (cv, s, t) {
     if (!s._grave) Object.defineProperty(s, '_grave', { value: buildScene({ kind: 'cemiterio', tod: 'noite', seed: hash(s.name + 'grave'), noHero: true, fig: { t: 'tumulo' } }, null, W, H), enumerable: false, writable: true });
-    return frame(s._grave, t, cv);
+    return usesImages(s._grave) ? frameImg(s._grave, t, cv) : frame(s._grave, t, cv);
   };
 
   /* ======================= retrato ======================= */

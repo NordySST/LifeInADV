@@ -4,7 +4,9 @@
   "private": true,
   "description": "RPG de texto em que cada vida é uma história diferente.",
   "scripts": {
-    "build": "node tools/build-www.js",
+    "build": "node tools/gerar-manifesto.js && node tools/build-www.js",
+    "manifesto": "node tools/gerar-manifesto.js",
+    "prioridades": "node tools/prioridades-arte.js",
     "simular": "node tools/simular.js 500",
     "android": "npm run build && npx cap sync android && npx cap open android"
   },
