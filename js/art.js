@@ -1180,6 +1180,14 @@
         for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const d = Math.abs(x - o.x - (y - o.y) * 0.45); if (d < 16 && y > o.y - 10) b.mix(x, y, [255, 240, 200], qa((1 - d / 16) * 0.22 * (0.8 + 0.2 * Math.sin(t)), x, y, 4)); }
       } else if (o.k === 'fireworks') {
         for (let i = 0; i < 2; i++) { const ph = (t * 0.6 + i * 0.5) % 1.4; if (ph < 1) { const cx = 50 + i * 90, cy = 18 + i * 6, col = [[255, 120, 90], [140, 200, 255]][i]; for (let a = 0; a < 16; a++) { const ang = (a / 16) * Math.PI * 2; b.set(cx + Math.cos(ang) * ph * 16, cy + Math.sin(ang) * ph * 12 + ph * ph * 4, ph > 0.8 ? mixc(col, [60, 40, 60], 0.5) : col); } } }
+      } else if (o.k === 'bunting') {
+        const cols = [[216, 64, 42], [240, 168, 48], [62, 154, 74], [58, 94, 168], [160, 74, 138]];
+        for (let line = 0; line < 2; line++) for (let X = 0; X < w; X++) {
+          const y = 10 + line * 13 + Math.round(Math.sin(X * 0.06 + line) * 4 + Math.sin(t * 1.5 + X * 0.1) * 0.6);
+          b.set(X, y, [50, 34, 24]);
+          if (X % 7 === 0) { const c = cols[(X / 7 + line) % 5]; for (let j = 1; j < 4; j++) for (let i = -2 + j; i <= 2 - j; i++) b.set(X + i, y + j, c); }
+          if (X % 23 === 11) for (let yy = y + 2; yy < y + 7; yy++) for (let xx = X - 2; xx <= X + 2; xx++) b.set(xx, yy, Math.abs(xx - X) === 2 || yy === y + 2 ? [60, 36, 20] : Math.sin(t * 6 + X) > -0.7 ? [255, 220, 120] : [240, 170, 70]);
+        }
       } else if (o.k === 'drip') {
         for (let i = 0; i < 4; i++) b.set(30 + i * 41, (t * 40 + i * 30) % (h * 0.75), [150, 200, 230]);
       } else if (o.k === 'hearts') {
@@ -1216,12 +1224,17 @@
     else if (k === 'batalha') res = paintBattle(S);
     else if (k === 'sonho') res = paintDream(S);
     else res = paintOutdoor(S, sp.biome);
+    if (k === 'festa') S.over.push({ k: 'bunting' }, { k: 'fireworks' });
     if (sp.weather === 'chuva') S.over.push({ k: 'rain' });
     if (sp.weather === 'neve' && !S.over.some((o) => o.k === 'snow')) S.over.push({ k: 'snow' });
     const ground = res.ground || Math.min(h - 6, Math.max(res.gTop + 16, Math.round(h * 0.86)));
     const sprites = [];
     const fx = Math.round(w * 0.68);
-    if (s && !sp.noHero) sprites.push({ spr: personSprite(s.look, s.job, G.stage(s)), x: Math.round(w * 0.3), y: ground, bob: 0 });
+    if (s && !sp.noHero) {
+      const st = G.stage(s), sx = s.look && s.look.sexo === 'f' ? 'f' : 'm';
+      const hf = typeof document !== 'undefined' && st !== 'inf' ? pickFile('pessoas', st === 'vel' ? ['heroi-velho', 'heroi-' + s.job + '-' + sx, 'heroi-' + s.job, 'heroi-' + sx, 'heroi'] : ['heroi-' + s.job + '-' + sx, 'heroi-' + (s.job || 'x'), s.job ? null : 'heroi-' + sx, 'heroi'], A.hash(s.name || '')) : null;
+      sprites.push({ spr: personSprite(s.look, s.job, st), x: Math.round(w * 0.3), y: ground, bob: 0, ground, file: hf, hgt: 44 });
+    }
     const f = sp.fig;
     if (f) {
       let spr2 = null, lift = 0, bob = 1;
@@ -1237,14 +1250,14 @@
       if (spr2) sprites.push({ spr: spr2, x: fx, y: ground - lift, bob, ground, file: typeof document !== 'undefined' ? figFile(sp) : null, hgt: figHeight(sp) });
     }
     for (const it of sprites) { const gw = it.spr.w * 0.38; for (let x = -gw; x < gw; x++) for (let y = -1; y <= 1; y++) b.mix(it.x + x, ground + y, [10, 8, 16], 0.32 * (1 - Math.abs(x) / gw)); }
-    return { base: b, S, sprites, mask: tornMask(w, h, sp.seed, 'lrtb'), seed: sp.seed, bg: typeof document !== 'undefined' ? sceneFile(sp) : null };
+    return { base: b, S, sprites, mask: tornMask(w, h, sp.seed, 'lrtb'), seed: sp.seed, tod: sp.tod, bg: typeof document !== 'undefined' ? sceneFile(sp) : null, bgExact: typeof document !== 'undefined' ? sceneExact(sp) : true };
   }
 
   function frame(c, t, cv) {
     const b = new Buf(c.base.w, c.base.h);
     b.d.set(c.base.d);
     for (const it of c.sprites) b.blit(it.spr, it.x - Math.round(it.spr.w / 2), it.y - it.spr.h + 1 + (it.bob && Math.floor(t * 1.6) % 2 ? 1 : 0));
-    overlays(c.S, b, t);
+    overlays(Object.assign({}, c.S, { over: c.S.over.filter((o) => o.k !== 'bunting' && !(o.k === 'fireworks' && c.S.sp.tod !== 'noite')) }), b, t);
     if (c.mask) for (let i = 0; i < b.d.length; i++) if (!c.mask[i]) b.d[i] = 0;
     return b.toCanvas(cv);
   }
@@ -1271,6 +1284,9 @@
   A.pickFile = pickFile;
   const sceneName = (sp) => (sp.kind === 'outdoor' ? sp.biome : sp.kind);
   function sceneFile(sp) { const base = sceneName(sp); return pickFile('cenas', [base + '-' + sp.tod, base], sp.seed || 0); }
+  // a imagem foi feita para este horário? (senão o motor tinge a cena com a cor do horário)
+  function sceneExact(sp) { const base = sceneName(sp); return !!pickFile('cenas', [base + '-' + sp.tod], sp.seed || 0) || sp.tod === 'dia'; }
+  const TOD_TINT = { noite: 'rgba(16,24,70,0.5)', tarde: 'rgba(255,120,60,0.16)', tempestade: 'rgba(40,48,64,0.38)', neblina: 'rgba(200,210,200,0.28)', sonho: 'rgba(150,60,180,0.18)' };
   function figFile(sp) {
     const f = sp.fig; if (!f) return null;
     const seed = sp.seed || 0;
@@ -1286,7 +1302,7 @@
   function figHeight(sp) {
     const f = sp.fig;
     if (f.t === 'criatura') return /drag/.test(f.c.base) ? 82 : clamp(30 + (f.c.pow || 3) * 5, 30, 80);
-    return { dragao: 82, fantasma: 46, cao: 26, cavalo: 50, gato: 18, pessoa: f.opt && f.opt.stage === 'inf' ? 38 : 50, coracao: 50, tumulo: 30, quadro: 36, fogueira: 16, moedas: 12, berco: 22, bau: 22, cristal: 30, caldeirao: 24, livro: 18 }[f.t] || 30;
+    return { dragao: 82, fantasma: 46, cao: 26, cavalo: 50, gato: 18, pessoa: f.opt && f.opt.stage === 'inf' ? 34 : 44, coracao: 44, tumulo: 30, quadro: 36, fogueira: 16, moedas: 12, berco: 22, bau: 22, cristal: 30, caldeirao: 24, livro: 18 }[f.t] || 30;
   }
 
   const imgCache = {};
@@ -1308,7 +1324,7 @@
     for (let i = 0; i < m.length; i++) if (!m[i]) b.d[i] = 0xff000000;
     return (maskCv[key] = b.toCanvas(document.createElement('canvas')));
   }
-  const SAFE_OVER = ['rain', 'snow', 'motes', 'sparkle', 'hearts'];
+  const SAFE_OVER = ['rain', 'snow', 'motes', 'sparkle', 'hearts', 'fireworks', 'bunting'];
   function frameImg(c, t, cv) {
     let bgE = c.bg ? loadImg(c.bg) : null;
     if (bgE && bgE.bad) { c.bg = null; bgE = null; }
@@ -1322,9 +1338,10 @@
     const tmp = c._tmp || (c._tmp = document.createElement('canvas'));
     if (bgE) {
       cx.drawImage(bgE.img, 0, 0, outW, outH);
+      if (!c.bgExact && TOD_TINT[c.tod]) { cx.fillStyle = TOD_TINT[c.tod]; cx.fillRect(0, 0, outW, outH); }
       for (const it of c.sprites) { cx.fillStyle = 'rgba(10,8,16,.28)'; cx.beginPath(); cx.ellipse(it.x * k, (it.ground || it.y) * k, (it.hgt || it.spr.h) * 0.45 * k, 2 * k, 0, 0, Math.PI * 2); cx.fill(); }
     } else {
-      const b = new Buf(W, H); b.d.set(c.base.d); overlays(c.S, b, t); b.toCanvas(tmp);
+      const b = new Buf(W, H); b.d.set(c.base.d); overlays(Object.assign({}, c.S, { over: c.S.over.filter((o) => o.k !== 'bunting') }), b, t); b.toCanvas(tmp);
       cx.drawImage(tmp, 0, 0, outW, outH);
     }
     const bobOn = Math.floor(t * 1.6) % 2;
@@ -1332,11 +1349,16 @@
       const e = it.file ? loadImg(it.file) : null;
       const bob = it.bob && bobOn ? k : 0;
       if (e && e.ok) {
-        const ih = it.hgt * k, iw = (ih * e.img.naturalWidth) / e.img.naturalHeight;
-        cx.drawImage(e.img, Math.round(it.x * k - iw / 2), Math.round(it.y * k - ih + bob), Math.round(iw), Math.round(ih));
+        // escala inteira para os pixels saírem uniformes
+        const nw = e.img.naturalWidth, nh = e.img.naturalHeight;
+        let sc = Math.max(1, Math.floor((it.hgt * k) / nh + 0.3));
+        while (sc > 1 && nw * sc > outW * 0.5) sc--;
+        const iw = nw * sc, ih = nh * sc;
+        cx.drawImage(e.img, Math.round(it.x * k - iw / 2), Math.round(it.y * k - ih + bob), iw, ih);
       } else {
         if (!it._cv) { const b = new Buf(it.spr.w, it.spr.h); b.d.set(it.spr.d); it._cv = b.toCanvas(document.createElement('canvas')); }
-        cx.drawImage(it._cv, Math.round((it.x - Math.round(it.spr.w / 2)) * k), Math.round((it.y - it.spr.h + 1) * k + bob), it.spr.w * k, it.spr.h * k);
+        const ps = Math.max(1, Math.round(k));
+        cx.drawImage(it._cv, Math.round(it.x * k - (it.spr.w * ps) / 2), Math.round(it.y * k - (it.spr.h - 1) * ps + bob), it.spr.w * ps, it.spr.h * ps);
       }
     }
     if (bgE) {

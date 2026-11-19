@@ -79,6 +79,7 @@
         <button class="opt" id="new">${ic('orn', 'orn')}<span>Nova vida</span></button>
         <button class="opt" id="gal">${ic('orn', 'orn')}<span>Crônicas</span></button>
         <button class="opt" id="snd">${ic('orn', 'orn')}<span>Som e música</span></button>
+        <button class="opt" id="cred">${ic('orn', 'orn')}<span>Créditos</span></button>
       </nav>
       ${rule()}
       <div class="stats3">
@@ -95,9 +96,20 @@
     on('#cont', () => { SND.play('confirm'); S = save; ensureLook(S); next(); });
     on('#gal', () => { SND.play('confirm'); gallery(); });
     on('#snd', () => { SND.play('confirm'); soundMenu(); });
+    on('#cred', () => { SND.play('confirm'); credits(); });
     document.addEventListener('pointerdown', () => { const h = $('.hint'); if (h) h.remove(); }, { once: true });
   }
   function ensureLook(s) { if (!s.look) s.look = A.newLook(s.name + s.sur, s.sexo); }
+
+  function credits() {
+    const div = modal(`
+      <h3>Créditos</h3>
+      <p class="story" style="text-indent:0">Ilustrações de cenários, criaturas e personagens: <b>Luis Zuno (ansimuz)</b>, pacotes Gothicvania, Sideview Fantasy, Magic Cliffs, Magical Road, Forest e Mountain at Dusk (CC0) e Battle Background: Hazy Hills (CC-BY 3.0), via OpenGameArt.org.</p>
+      <p class="story" style="text-indent:0">Fontes: Alegreya (Juan Pablo del Peral, Huerta Tipográfica) e Pixelify Sans (Stefie Justprince), licença SIL OFL.</p>
+      <p class="story" style="text-indent:0">Onde não há ilustração pronta, a arte, a música e os efeitos sonoros são gerados pelo próprio jogo.</p>
+      <nav class="opts"><button class="opt" id="close">${ic('orn', 'orn')}<span>Fechar</span></button></nav>`);
+    on('#close', () => { SND.play('select'); div.remove(); }, div);
+  }
 
   /* ---------------- janelas ---------------- */
   function modal(html) {

@@ -1,5 +1,7 @@
 # Imagens do Mil Vidas
 
+> As imagens atuais vêm de pacotes gratuitos do OpenGameArt — veja [CREDITOS.md](CREDITOS.md). Ao trocar ou acrescentar imagens, registre a origem lá.
+
 Coloque imagens nestas pastas e o jogo passa a usá-las automaticamente. **Onde não houver imagem, continua aparecendo a arte gerada por código** — então dá para ir trocando aos poucos.
 
 ```
@@ -26,6 +28,7 @@ O nome diz onde a imagem é usada. Formatos aceitos: `.png`, `.webp`, `.jpg`.
 | Pessoa | `pessoas/<papel>.png` | `pessoa`, `viajante`, `mercador`, `crianca`, `par` |
 | Objeto | `objetos/<objeto>.png` | `bau`, `cristal`, `livro`, `berco`, `quadro`, `tumulo`, `caldeirao`, `fogueira`, `moedas` |
 | Capa do menu | `cenas/titulo.png` | ilustração vertical (proporção 5:7) |
+| Herói (personagem do jogador) | `pessoas/heroi-<ofício>.png`, `pessoas/heroi-velho.png`, `pessoas/heroi-f.png`, `pessoas/heroi.png` | **virado para a direita**; ofícios: `mago`, `soldado`, `ladrao`, `mercador`, `sacerdote`, `bardo`, `fazendeiro`, `aventureiro` |
 
 Nomes em minúsculas, sem acento, com hífen no lugar de espaço.
 
