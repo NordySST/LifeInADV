@@ -23,6 +23,7 @@
     if (c.k === 'item') return ic('item');
     if (c.k === 'title') return ic('title');
     if (c.k === 'travel') return ic('travel');
+    if (c.k === 'xp' || c.k === 'level') return ic('star');
     if (/Vida/.test(c.t)) return ic('heart');
     for (const k in G.STATS) if (c.t.includes(G.STATS[k])) return ic(k);
     return '';
@@ -94,7 +95,7 @@
     A.renderTitle(cv, 0, seed);
     SND.music('menu', seed);
     on('#new', () => { SND.play('confirm'); if (!save) creation(); else ask('Começar uma nova vida? A vida de ' + save.name + ' será perdida.', creation); });
-    on('#cont', () => { SND.play('confirm'); S = save; ensureLook(S); next(); });
+    on('#cont', () => { SND.play('confirm'); S = G.fixState(save); ensureLook(S); next(); });
     on('#gal', () => { SND.play('confirm'); gallery(); });
     on('#snd', () => { SND.play('confirm'); soundMenu(); });
     on('#cred', () => { SND.play('confirm'); credits(); });
@@ -204,6 +205,7 @@
         <div class="plate">${esc(S.name)} ${esc(S.sur)}</div>
         <div class="hearts">${hearts()}<span class="gold">${ic('coin')}${S.gold}</span></div>
         <div class="ageline">${S.age} anos · ${esc(G.stageName(S))}${S.job ? ' · ' + G.JOBS[S.job] : ''}</div>
+        <div class="xpline"><span class="lv">Nv ${S.lvl}</span><div class="xpbar" title="${S.xp}/${G.xpNeed(S.lvl)} exp"><div style="width:${Math.round((100 * S.xp) / G.xpNeed(S.lvl))}%"></div></div>${S.pts ? `<button class="ptsbtn" id="lvup">+${S.pts}</button>` : ''}</div>
         <div class="hud-stats">${stats}</div>
         ${rule()}
       </header>`;
@@ -272,7 +274,8 @@
       if (res.chips.some((c) => /Vida/.test(c.t) && c.k === 'bad')) sw.classList.add('shake');
       if (res.chips.some((c) => c.k === 'title')) sw.classList.add('flash');
     });
-    on('#cont', (e) => { e.stopPropagation(); SND.play('page'); next(); });
+    on('#cont', (e) => { e.stopPropagation(); SND.play('page'); if (S.alive && S.pts > 0) levelUp(next); else next(); });
+    on('#lvup', (e) => { e.stopPropagation(); levelUp(render); });
     on('#sheet', sheet); on('#sheet2', sheet);
     on('#diary', diary);
     on('#snd', soundMenu);
@@ -445,6 +448,40 @@
     q.slice(0, 3).forEach((n, i) => setTimeout(() => SND.play(n), i * 280));
   }
 
+  /* ---------------- subir de nível ---------------- */
+  function levelUp(done) {
+    if (!S.pts) { if (done) done(); return; }
+    SND.play('title');
+    const keys = Object.keys(G.STATS), add = {};
+    keys.forEach((k) => (add[k] = 0));
+    const total = S.pts;
+    const left = () => total - keys.reduce((a, k) => a + add[k], 0);
+    const div = modal(`
+      <h3>${ic('star')} Nível ${S.lvl}!</h3>
+      <p class="lv-sub">Distribua <b id="left">${total}</b> ${total === 1 ? 'ponto' : 'pontos'} entre os atributos.</p>
+      <div class="lv-grid">${keys.map((k) => `<div class="stat lv-row">${ic(k)}<span>${G.STATS[k]}</span><b id="v_${k}">${S.st[k]}</b>
+        <button class="mini" data-k="${k}" data-d="-1" aria-label="tirar">−</button><button class="mini" data-k="${k}" data-d="1" aria-label="pôr">+</button></div>`).join('')}</div>
+      <nav class="opts"><button class="opt" id="lvok" disabled>${ic('orn', 'orn')}<span>Confirmar</span></button>
+      <button class="opt" id="lvlater">${ic('orn', 'orn')}<span>Decidir depois</span></button></nav>`);
+    const upd = () => {
+      for (const k of keys) {
+        div.querySelector('#v_' + k).textContent = S.st[k] + add[k];
+        div.querySelector('#v_' + k).className = add[k] ? 'up' : '';
+        div.querySelector(`[data-k="${k}"][data-d="-1"]`).disabled = !add[k];
+        div.querySelector(`[data-k="${k}"][data-d="1"]`).disabled = !left() || S.st[k] + add[k] >= 20;
+      }
+      div.querySelector('#left').textContent = left();
+      div.querySelector('#lvok').disabled = left() > 0;
+    };
+    div.querySelectorAll('.mini').forEach((b) => b.addEventListener('click', () => { add[b.dataset.k] += +b.dataset.d; SND.play('select'); upd(); }));
+    on('#lvok', () => {
+      for (const k of keys) for (let i = 0; i < add[k]; i++) G.spend(S, k);
+      G.saveGame(S); SND.play('stat'); div.remove(); if (done) done();
+    }, div);
+    on('#lvlater', () => { SND.play('select'); div.remove(); if (done) done(); }, div);
+    upd();
+  }
+
   function sheet() {
     SND.play('page');
     const ppl = [
@@ -461,6 +498,9 @@
           <div class="muted"><i>${esc(S.originName)}</i></div>
           <div class="chips">${S.traits.map((t) => `<span class="chip info">${esc(G.traitName(t))}</span>`).join('')}</div></div>
       </div>
+      <h4>Nível ${S.lvl}</h4>
+      <div class="xpline big"><div class="xpbar"><div style="width:${Math.round((100 * S.xp) / G.xpNeed(S.lvl))}%"></div></div><span class="muted">${S.xp}/${G.xpNeed(S.lvl)} exp</span></div>
+      ${S.pts ? `<nav class="opts"><button class="opt" id="lvup2">${ic('star', 'orn')}<span>Distribuir ${S.pts} pontos</span></button></nav>` : ''}
       <h4>Atributos</h4>
       <div class="stats-grid">${Object.keys(G.STATS).map((k) => `<div class="stat">${ic(k)}<span>${G.STATS[k]}</span><b>${G.stat(S, k)}</b></div>`).join('')}</div>
       <h4>Inventário</h4>
@@ -475,6 +515,7 @@
       <nav class="opts"><button class="opt" id="close">${ic('orn', 'orn')}<span>Fechar</span></button></nav>`);
     A.portraitCanvas(div.querySelector('#mpcv'), S);
     on('#close', () => { SND.play('select'); div.remove(); }, div);
+    on('#lvup2', () => { div.remove(); levelUp(phase === 'choose' && cur ? render : null); }, div);
   }
 
   function logHtml(s) {

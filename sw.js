@@ -1,5 +1,5 @@
 /* Service worker: deixa o jogo jogável offline depois da primeira visita. */
-const CACHE = 'milvidas-v5';
+const CACHE = 'milvidas-v6';
 const FILES = ['./', './index.html', './css/style.css', './manifest.webmanifest', './icon.svg',
   './img/manifest.js', './js/engine.js', './js/gen.js', './js/combat.js', './js/art.js', './js/audio.js', './js/ui.js',
   './fonts/pixelify-sans-latin-400-normal.woff2', './fonts/alegreya-latin-400-normal.woff2', './fonts/alegreya-latin-400-italic.woff2', './fonts/alegreya-latin-700-normal.woff2', './fonts/pixelify-sans-latin-700-normal.woff2', './js/content/origens.js', './js/content/infancia.js',

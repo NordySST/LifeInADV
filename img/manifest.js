@@ -17,7 +17,6 @@ globalThis.G.IMG = {
   "mercado-2.png",
   "mercado.png",
   "montanha-tarde.png",
-  "montanha.png",
   "planicie-2.png",
   "planicie.png",
   "ruina.png",
@@ -58,17 +57,13 @@ globalThis.G.IMG = {
   "heroi-crianca.png",
   "heroi-jovem.png",
   "heroi-velho.png",
+  "homem.png",
   "mercador.png",
-  "par.png",
-  "pessoa-2.png",
-  "pessoa-3.png",
-  "pessoa-4.png",
-  "pessoa.png",
+  "mulher.png",
   "retrato-adulto.png",
   "retrato-crianca.png",
   "retrato-jovem.png",
   "retrato-velho.png",
-  "viajante-2.png",
-  "viajante.png"
+  "velho.png"
  ]
 };

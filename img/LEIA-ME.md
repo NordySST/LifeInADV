@@ -25,7 +25,7 @@ O nome diz onde a imagem é usada. Formatos aceitos: `.png`, `.webp`, `.jpg`.
 | Várias versões | acrescente `-2`, `-3`... | `cenas/floresta-2.png` (o jogo sorteia entre elas) |
 | Criatura | `criaturas/<nome>.png` | `criaturas/lobo.png`, `criaturas/urso-polar.png` |
 | Criatura com adjetivo | `criaturas/<nome>-<adjetivo>.png` | `criaturas/lobo-albino.png`, `criaturas/troll-ancião.png` vira `troll-anciao.png` |
-| Pessoa | `pessoas/<papel>.png` | `pessoa`, `viajante`, `mercador`, `crianca`, `par` |
+| Pessoa | `pessoas/<papel>.png` | `homem`, `mulher`, `velho`, `velha`, `mercador`, `mercadora`, `crianca`, `crianca-f` (o jogo escolhe pelo que o texto descreve; sem imagem, desenha por código) |
 | Objeto | `objetos/<objeto>.png` | `bau`, `cristal`, `livro`, `berco`, `quadro`, `tumulo`, `caldeirao`, `fogueira`, `moedas` |
 | Capa do menu | `cenas/titulo.png` | ilustração vertical (proporção 5:7) |
 | Herói por fase da vida | `pessoas/heroi-crianca.png`, `heroi-jovem.png`, `heroi-adulto.png`, `heroi-velho.png` | **virado para a direita**, fundo transparente, pés na borda de baixo; adulto com ~54 px de altura |

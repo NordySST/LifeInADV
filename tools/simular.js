@@ -44,6 +44,8 @@ for (let i = 0; i < N; i++) {
     let r;
     try { r = G.choose(s, inst, G.R.idx(cs)); } catch (e) { note('choose:' + inst.id + ':' + e.message, e.stack); break; }
     if (/\{\w+\}/.test(r.text)) note('placeholder-resultado:' + inst.id, r.text);
+    // pontos de nível: distribui ao acaso
+    while (s.pts > 0 && G.spend(s, G.R.pick(Object.keys(G.STATS)))) { /* gasta */ }
     turns++;
   }
   if (guard >= 400) note('loop infinito', s.name);

@@ -86,7 +86,7 @@
     const sexo = R.pick(['m', 'f']);
     const s = {
       v: 1, name: G.gen.first(sexo), sexo, sur: G.gen.surname(),
-      age: 0, turn: 0, hp: 10, maxHp: 10, gold: 0,
+      age: 0, turn: 0, hp: 10, maxHp: 10, gold: 0, xp: 0, lvl: 1, pts: 0,
       st: { for: 2, agi: 2, int: 2, car: 2, sor: 2 },
       f: {}, items: [], job: null, titles: [], log: [], seen: {}, last: {}, queue: [],
       world, reg: 0, lifespan: R.int(58, 92), alive: true, cause: null, procCount: 0,
@@ -206,12 +206,37 @@
     return instance(G.events.tempo_passa, s);
   };
 
+  /* ---------------- Experiência e níveis ---------------- */
+  // Os atributos não sobem mais direto pelos eventos: o que antes era "+1 Força" vira experiência.
+  // Ao encher a barra, o personagem sobe de nível e ganha pontos para distribuir.
+  G.XP = { porEvento: 2, porAtributo: 5, sucesso: 3, falha: 1, pontosPorNivel: 3 };
+  G.xpNeed = (lvl) => 20 + lvl * 10;
+  G.fixState = (s) => { if (s.xp == null) { s.xp = 0; s.lvl = 1; s.pts = 0; } return s; };
+  G.gainXp = function (s, n, chips) {
+    G.fixState(s);
+    n = Math.round(n);
+    if (n <= 0) return;
+    s.xp += n;
+    if (chips) chips.push({ k: 'xp', t: '+' + n + ' exp' });
+    while (s.xp >= G.xpNeed(s.lvl)) {
+      s.xp -= G.xpNeed(s.lvl);
+      s.lvl++;
+      s.pts += G.XP.pontosPorNivel;
+      if (chips) chips.push({ k: 'level', t: 'Nível ' + s.lvl + '! +' + G.XP.pontosPorNivel + ' pontos' });
+    }
+  };
+  G.spend = function (s, k) {
+    if (!s.pts || !G.STATS[k] || s.st[k] >= 20) return false;
+    s.st[k]++; s.pts--;
+    return true;
+  };
+
   /* ---------------- Escolhas e efeitos ---------------- */
   G.chance = function (s, check) {
     const v = G.stat(s, check.s);
     const sor = G.stat(s, 'sor');
-    const p = 0.5 + (v - check.d) * 0.11 + (check.s === 'sor' ? 0 : (sor - 3) * 0.02);
-    return Math.max(0.05, Math.min(0.95, p));
+    const p = 0.45 + (v - check.d) * 0.1 + (check.s === 'sor' ? 0 : (sor - 3) * 0.02);
+    return Math.max(0.05, Math.min(0.9, p));
   };
   G.check = (s, c, ctx) => (typeof c.check === 'function' ? c.check(s, ctx) : c.check);
   G.choices = function (s, inst) {
@@ -239,8 +264,18 @@
     const o = R.wpick(pool.length ? pool : [{}], (x) => (x.w == null ? 10 : x.w)) || {};
     const text = txt(o.t, s, inst.ctx);
     s.seen[inst.key] = 1; s.seen[inst.id] = 1; s.last[inst.id] = s.turn;
+    G.fixState(s);
+    s._xp = 0;
     const chips = G.apply(s, o, inst.ctx);
     if (opts.dmg > 0 && s.alive) chips.push(...G.apply(s, { fx: { hp: -opts.dmg }, cause: opts.cause }, inst.ctx));
+    // experiência: viver ensina; arriscar ensina mais; vencer lutas ensina muito
+    let xp = s._xp + G.XP.porEvento;
+    delete s._xp;
+    if (opts.combat && opts.battle) {
+      const b = opts.battle, pow = (b.e && b.e.pow) || 3;
+      xp += ok === true ? (4 + pow * 2) * (b.boss ? 2 : 1) : 2 + pow;
+    } else if (ck && ok != null) xp += ok ? G.XP.sucesso + Math.max(0, Math.min(6, (ck.d || 3) - 2)) : G.XP.falha;
+    if (s.alive) G.gainXp(s, xp, chips);
     if (opts.combat) chips.unshift(ok === true ? { k: 'ok', t: 'Vitória' } : ok === false ? { k: 'bad', t: 'Derrota' } : { k: 'info', t: 'Combate encerrado' });
     else if (ok === true) chips.unshift({ k: 'ok', t: 'Sucesso' });
     else if (ok === false) chips.unshift({ k: 'bad', t: 'Falha' });
@@ -274,7 +309,11 @@
         const v = val(o.fx[k]);
         if (!v) continue;
         const sg = v > 0 ? '+' : '';
-        if (G.STATS[k]) { s.st[k] = Math.max(0, Math.min(20, s.st[k] + v)); chips.push({ k: v > 0 ? 'ok' : 'bad', t: sg + v + ' ' + G.STATS[k] }); }
+        if (G.STATS[k]) {
+          // ganhos viram experiência; perdas continuam tirando do atributo
+          if (v > 0 && s._xp != null) s._xp += v * G.XP.porAtributo;
+          else { s.st[k] = Math.max(0, Math.min(20, s.st[k] + v)); chips.push({ k: v > 0 ? 'ok' : 'bad', t: sg + v + ' ' + G.STATS[k] }); }
+        }
         else if (k === 'hp') { s.hp = Math.min(s.maxHp, s.hp + v); chips.push({ k: v > 0 ? 'ok' : 'bad', t: sg + v + ' Vida' }); }
         else if (k === 'maxHp') { s.maxHp = Math.max(1, s.maxHp + v); s.hp = Math.min(s.maxHp, v > 0 ? s.hp + v : s.hp); chips.push({ k: v > 0 ? 'ok' : 'bad', t: sg + v + ' Vida máx.' }); }
         else if (k === 'gold') { const before = s.gold; s.gold = Math.max(0, s.gold + v); const d = s.gold - before; if (d) chips.push({ k: d > 0 ? 'gold' : 'bad', t: (d > 0 ? '+' : '') + d + ' ouro' }); }

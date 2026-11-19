@@ -124,6 +124,7 @@
     orn: ['....k....', '...kYk...', '..kYoYk..', '.kYokoYk.', 'kYokRkoYk', '.kYokoYk.', '..kYoYk..', '...kYk...', '....k....'],
     book: ['.kkkkkkkk', 'kBBBBBBBk', 'kBYBBBBBk', 'kBBBBBBBk', 'kBBYYYBBk', 'kBBBBBBBk', 'kBBBBBBBk', 'kwwwwwwwk', '.kkkkkkkk'],
     bag: ['...kkk...', '..kbbbk..', '...kRk...', '.kkbbbkk.', 'kbbbbbbbk', 'kbbybbbbk', 'kbbbbbbbk', 'kbbbbbbbk', '.kkkkkkk.'],
+    star: ['....k....', '...kYk...', 'kkkkYkkkk', 'kYYYwYYYk', '.kYYYYyk.', '..kYyyk..', '.kYykyyk.', 'kyk...kyk', 'kk.....kk'],
     menu: ['.........', 'kkkkkkkkk', 'kYYYYYYYk', 'kkkkkkkkk', '.........', 'kkkkkkkkk', 'kYYYYYYYk', 'kkkkkkkkk', '.........'],
   };
   const ICON_PAL = { k: '#2a1a14', R: '#d8343e', r: '#9a1e2e', w: '#ffffff', g: '#9a8c78', Y: '#fee761', y: '#f0a830', o: '#a8642a', l: '#c0cbdc', b: '#8b5a2b', B: '#3a5ea8', G: '#3e9a4a', s: '#f2c79a' };
@@ -1245,7 +1246,7 @@
       else if (f.t === 'cao') spr2 = mirror(rasterize(quad({ bl: 8, bh: 4.5, leg: 7, hr: 3.4, sn: 3, ears: 'rd', tail: 'thin', main: '#a87038' }), SPR));
       else if (f.t === 'cavalo') spr2 = mirror(rasterize(quad({ bl: 13, bh: 6.5, leg: 14, lr: 1.8, hr: 3.6, sn: 5, neck: 7, ears: 'pt', tail: 'horse', mane: 'neck', main: '#2e2420' }), SPR));
       else if (f.t === 'gato') spr2 = mirror(rasterize(quad({ bl: 5.5, bh: 3.2, leg: 4.5, hr: 2.8, sn: 0.8, ears: 'pt', tail: 'up', main: '#26222c', eyes: 'y' }), SPR));
-      else if (f.t === 'coracao') { spr2 = mirror(personSprite(A.newLook('par' + sp.seed, s && s.look.sexo === 'm' ? 'f' : 'm'), null, 'jov', { cloth: '#8a3a5a' })); S.over.push({ k: 'hearts', x: Math.round(w * 0.49), y: ground - 42 }); }
+      else if (f.t === 'coracao') { spr2 = mirror(personSprite(A.newLook('par' + sp.seed, f.sexo || (s && s.look.sexo === 'm' ? 'f' : 'm')), null, 'jov', { cloth: '#8a3a5a' })); S.over.push({ k: 'hearts', x: Math.round(w * 0.49), y: ground - 42 }); }
       else { spr2 = objectSprite(f.t, s && s.look); bob = 0; if (f.t === 'livro' || f.t === 'cristal') { lift = f.t === 'livro' ? 10 : 0; S.over.push({ k: 'sparkle', x: fx, y: ground - 18 }); } if (f.t === 'fogueira') S.over.push({ k: 'fire', x: fx, y: ground - 3, s: 0.8 }); }
       if (spr2) sprites.push({ spr: spr2, x: fx, y: ground - lift, bob, ground, file: typeof document !== 'undefined' ? figFile(sp) : null, hgt: figHeight(sp), human: f.t === 'pessoa' || f.t === 'coracao' });
     }
@@ -1365,8 +1366,15 @@
     if (f.t === 'dragao') return pickFile('criaturas', ['dragao'], seed);
     if (f.t === 'fantasma') return pickFile('criaturas', ['fantasma', 'afogado'], seed);
     if (['cao', 'cavalo', 'gato'].includes(f.t)) return pickFile('criaturas', [f.t], seed);
-    if (f.t === 'pessoa') { const o = f.opt || {}; return pickFile('pessoas', [o.stage === 'inf' ? 'crianca' : o.job === 'mercador' ? 'mercador' : o.pack ? 'viajante' : null, 'pessoa'], seed); }
-    if (f.t === 'coracao') return pickFile('pessoas', ['par', 'pessoa'], seed);
+    if (f.t === 'pessoa') {
+      // só usa imagem quando ela bate com quem o texto descreve; senão desenha a pessoa por código
+      const o = f.opt || {};
+      if (o.role === 'crianca' || o.stage === 'inf') return pickFile('pessoas', ['crianca' + (o.sexo === 'f' ? '-f' : '')], seed);
+      const names = o.sexo === 'f' ? (o.role === 'velho' ? ['velha'] : o.role === 'mercador' ? ['mercadora', 'mulher'] : ['mulher'])
+        : o.role === 'velho' ? ['velho'] : o.role === 'mercador' ? ['mercador'] : ['homem'];
+      return pickFile('pessoas', names, seed);
+    }
+    if (f.t === 'coracao') return pickFile('pessoas', [f.sexo === 'm' ? 'homem' : 'mulher'], seed);
     return pickFile('objetos', [f.t], seed);
   }
   // altura (em pixels da cena de 192×120) com que cada imagem é desenhada
@@ -1459,31 +1467,90 @@
   };
 
   /* ======================= escolha da cena para cada evento ======================= */
+  // palavras inteiras (o \b do JavaScript não entende acentos)
+  const wd = (src) => new RegExp('(?<![\\wÀ-ú])(?:' + src + ')(?![\\wÀ-ú])');
   const RULES = [
     [/drag[aã]o/, 'outdoor', { t: 'dragao' }, 'tarde'],
-    [/taverna|estalagem|dados|bebida|caneca|aposta_dados/, 'taverna'],
-    [/cemit[eé]rio|morte_velhice|viuvez/, 'cemiterio', { t: 'tumulo' }, 'noite'],
-    [/fantasma|assombrad|esp[ií]rito/, 'casa', { t: 'fantasma' }, 'noite'],
-    [/templo|sacerdote|coro|santu[aá]rio|milagre|exorcismo|heresia|peregrino/, 'templo'],
-    [/biblioteca|livro|mago_|feiti[cç]|arcan|grim[oó]rio|aprender_ler/, 'biblioteca', { t: 'livro' }],
-    [/caverna|masmorra|eco|mina/, 'caverna', { t: 'bau' }],
-    [/barco|balsa|garrafa|naufr|mar[ ,.]|tesouro_rio|travessia|rio_proibido/, 'mar'],
-    [/batalha|guerra|cerco|torneio|duelo|recrut|soldado|desert/, 'batalha'],
-    [/festa|baile|festival|circo|anivers/, 'festa'],
-    [/mercad|caravana|feira|imposto|padaria|doces|mascate|artefato|alaúde|luthier|espelho/, 'mercado'],
-    [/fazenda|colheita|arado|galinha/, 'outdoor', { t: 'fogueira' }],
-    [/nasc|beb[eê]|irmao_nasce|filho_nasce|neto|berço/, 'casa', { t: 'berco' }],
-    [/casamento|amor|beijo|romance|paix/, 'outdoor', { t: 'coracao' }, 'tarde'],
-    [/\bc[aã]o\b|cachorro|vira-lata/, 'outdoor', { t: 'cao' }],
-    [/\bgato\b/, 'casa', { t: 'gato' }],
-    [/cavalo/, 'outdoor', { t: 'cavalo' }],
-    [/tesouro|heran[cç]a|mapa|ba[uú]/, 'outdoor', { t: 'bau' }],
-    [/bruxa|feiticeira|maldi[cç]/, 'outdoor', { t: 'caldeirao' }, 'noite'],
-    [/sonho|vidente|profecia|estrela/, 'sonho', { t: 'cristal' }, 'sonho'],
-    [/doen[cç]a|febre|peste|sa[uú]de|testamento|mem[oó]rias|\bcasa\b|fam[ií]lia|primeiros_passos|primeira_palavra|crise/, 'casa'],
-    [/rei|corte|conselho|convite/, 'cidade'],
-    [/tempestade|chuva|terremoto|eclipse|incendio/, 'outdoor', null, 'tempestade', 'chuva'],
+    [wd('taverna|estalagem|dados|bebida|caneca|aposta_dados'), 'taverna'],
+    [/cemit[eé]rio|morte_velhice|viuvez|funeral|enterr/, 'cemiterio', { t: 'tumulo' }, 'noite'],
+    [/fantasma|assombrad|espectro|alma penada/, 'casa', { t: 'fantasma' }, 'noite'],
+    [wd('templo|sacerdote|sacerdotisa|coro|santu[aá]rio|milagre|exorcismo|heresia|peregrin[oa]|capela|igreja'), 'templo'],
+    [/biblioteca|livro|mago_|feiti[cç]o|arcan|grim[oó]rio|aprender_ler/, 'biblioteca', { t: 'livro' }],
+    [wd('caverna|masmorra|gruta|eco|minas?|mineir[oa]|cripta'), 'caverna', { t: 'bau' }],
+    [wd('barco|balsa|garrafa|naufr[aá]gio|mar|navio|tesouro_rio|travessia|rio_proibido'), 'mar'],
+    [wd('batalha|guerra|cerco|torneio|duelo|recrut[a-zà-ú]*|alist[a-zà-ú]*|soldados?|exército|desert(or|ora|ar|ou)'), 'batalha'],
+    [wd('festa|baile|festival|circo|aniversário'), 'festa'],
+    [/mercad|caravana|(?<![\wÀ-ú])feira|imposto|padaria|doces|mascate|artefato|alaúde|luthier|espelho/, 'mercado'],
+    [wd('fazenda|colheita|arado|galinhas?|galinheiro|plantação'), 'outdoor', { t: 'fogueira' }],
+    [wd('nasce[a-z]*|nasceu|bebês?|irmao_nasce|filho_nasce|net[oa]s?|berço'), 'casa', { t: 'berco' }],
+    [/casamento|(?<![\wÀ-ú])amor|beij|romance|paix/, 'outdoor', { t: 'coracao' }, 'tarde'],
+    [wd('c[aã]o|cachorro|vira-lata'), 'outdoor', { t: 'cao' }],
+    [wd('gato'), 'casa', { t: 'gato' }],
+    [wd('cavalos?|potro|égua'), 'outdoor', { t: 'cavalo' }],
+    [wd('tesouro|heran[cç]a|mapa|ba[uú]'), 'outdoor', { t: 'bau' }],
+    [wd('bruxa|feiticeira|maldi[cç][aã]o|amaldi[cç]oad[oa]'), 'outdoor', { t: 'caldeirao' }, 'noite'],
+    [wd('sonho|sonhos|sonha|sonhou|vidente|profecia|estrelas?'), 'sonho', { t: 'cristal' }, 'sonho'],
+    [wd('doen[cç]a|febre|tosse|m[eé]dic[oa]|curandeir[oa]|peste|sa[uú]de|testamento|mem[oó]rias|casa|fam[ií]lia|primeiros_passos|primeira_palavra|crise'), 'casa'],
+    [wd('rei|rainha|corte real|castelo|conselho|convite|cidade|capital'), 'cidade'],
+    [wd('tempestade|chuva|terremoto|eclipse|incêndio|incendio'), 'outdoor', null, 'tempestade', 'chuva'],
   ];
+  // lugar citado no texto vence o bioma da região
+  const PLACES = [
+    ['floresta', wd('floresta|florestas|bosques?|matas?|clareira|árvores?')],
+    ['montanha', wd('montanhas?|montes?|picos?|serra|penhascos?|rochedo')],
+    ['deserto', wd('deserto|dunas?|areias?|areais|oásis')],
+    ['pantano', wd('pântanos?|brejos?|charcos?')],
+    ['costa', wd('costa|praias?|baía|enseada|porto')],
+    ['planicie', wd('campos?|planícies?|pradarias?|plantações?|colheita|fazenda|pastos?')],
+    ['tundra', wd('neve|gelo|gelad[oa]s?|tundra|gélid[oa]')],
+  ];
+  function placeOf(text) {
+    let best = null, bi = 1e9;
+    for (const [b, re] of PLACES) { const m = re.exec(text); if (m && m.index < bi) { bi = m.index; best = b; } }
+    return best;
+  }
+
+  /* quem aparece: gênero e papel tirados do próprio texto */
+  const F_SO = 'mulher|senhora|moça|menina|garota|velha|rainha|princesa|viúva|noiva|bruxa|feiticeira|elfa|dama|freira|sacerdotisa|curandeira|parteira|camponesa|anciã|avó|tia|vizinha|filha|irmã|esposa|mãe|mercadora|alquimista|ex-aventureira|cigana|estranha|viajante|nobre|jovem|anã|padeira|cozinheira|costureira|ladra|guerreira|maga|médica|sábia';
+  const M_SO = 'homem|senhor|rapaz|menino|garoto|velho|rei|príncipe|viúvo|noivo|bruxo|feiticeiro|elfo|monge|padre|sacerdote|curandeiro|camponês|ancião|avô|tio|vizinho|filho|irmão|marido|pai|mercador|alquimista|cavaleiro|anão|bardo|peregrino|soldado|desertor|gigante|halfling|gnomo|sujeito|estranho|nobre|mendigo|escriba|mentor|recrutador|jovem|viajante|eremita|ferreiro|caçador|pescador|guarda|mago|advogado|tutor|sócio|padeiro|taverneiro|estalajadeiro|bandido|ladrão|forasteiro|cigano|lenhador|pastor|mascate|vendedor|comerciante|capitão|guerreiro|médico|sábio';
+  const RE_F = new RegExp('(?<![\\wÀ-ú])(?:(?:uma|a|sua|outra|certa|pobre)\\s+(?:[a-zà-ú]+\\s+)?(?:' + F_SO + ')|mulher|senhora|moça|menina|garota|velha|rainha|princesa|viúva|noiva|bruxa|feiticeira|elfa|dama|freira|sacerdotisa|anciã|avó)(?![\\wÀ-ú])', 'i');
+  const RE_M = new RegExp('(?<![\\wÀ-ú])(?:(?:um|o|seu|outro|certo|pobre)\\s+(?:[a-zà-ú]+\\s+)?(?:' + M_SO + ')|homem|rapaz|menino|garoto|monge|padre|ancião|avô|eremita|mendigo|cavaleiro|anão)(?![\\wÀ-ú])', 'i');
+  const RE_VELHO = /velh[oa]|idos[oa]|anci[aã]|av[oóô]|eremita|mendig|de cabelos brancos|barba branca|enrugad/;
+  const RE_MERC = /mercador|mascate|vendedor|comerciante|negociante|taverneir|estalajadeir|padeir/;
+  const RE_CRIA = /crian[cç]a|menin[oa]|garot[oa]|primo|prima|filho do padeiro/;
+  const NPC_KEYS = ['npc', 'npc2', 'amigo', 'rival', 'mentor', 'irmao', 'amor', 'filho', 'pai', 'mae'];
+  function personOf(s, inst, text) {
+    const low = text.toLowerCase();
+    const hits = [];
+    const mf = RE_F.exec(low); if (mf) hits.push({ i: mf.index, sexo: 'f', w: mf[0] });
+    const mm = RE_M.exec(low); if (mm) hits.push({ i: mm.index, sexo: 'm', w: mm[0] });
+    const mc = /(?<![\wÀ-ú])(?:uma|a) criança(?![\wÀ-ú])/.exec(low); if (mc) hits.push({ i: mc.index, sexo: null, w: mc[0] });
+    const ctx = inst.ctx || {};
+    for (const k of NPC_KEYS) {
+      const n = ctx[k] || (s.ppl && s.ppl[k]);
+      if (!n || n === s.name) continue;
+      const i = text.indexOf(n);
+      if (i < 0) continue;
+      const sexo = k === 'pai' ? 'm' : k === 'mae' ? 'f' : G.gen.sexOf ? G.gen.sexOf(String(n).split(' ')[0]) : 'm';
+      hits.push({ i, sexo, w: k, name: true });
+    }
+    if (!hits.length) return null;
+    hits.sort((a, b) => a.i - b.i);
+    let h = hits[0];
+    if (!h.sexo) { const nx = hits.find((x) => x.sexo); h = Object.assign({}, h, { sexo: nx ? nx.sexo : 'm' }); }
+    // "{npc}, um mercador" — o substantivo logo depois do nome conta mais que o sorteio do nome
+    if (h.name && hits[1] && !hits[1].name && hits[1].i - h.i < 30) h = Object.assign({}, h, { sexo: hits[1].sexo, w: hits[1].w });
+    // papel olhando só perto da pessoa e no texto original (nomes próprios como "Campo Velho" começam com maiúscula)
+    const near = text.slice(h.i, h.i + (h.w.length || 0) + 16);
+    const kidCtx = RE_CRIA.test(h.w) || RE_CRIA.test(low.slice(Math.max(0, h.i - 30), h.i + 30)) || (h.name && G.stage(s) === 'inf' && ['amigo', 'rival', 'irmao'].includes(h.w));
+    const role = kidCtx ? 'crianca' : RE_VELHO.test(near) ? 'velho' : RE_MERC.test(near) ? 'mercador' : 'adulto';
+    return { sexo: h.sexo, role };
+  }
+  function personFig(key, p, extra) {
+    const sexo = (p && p.sexo) || 'm', role = (p && p.role) || 'adulto';
+    const stage = role === 'crianca' ? 'inf' : role === 'velho' ? 'vel' : 'adu';
+    return { t: 'pessoa', look: A.newLook(key + 'npc' + sexo, sexo), opt: Object.assign({ sexo, role, stage, job: role === 'mercador' ? 'mercador' : undefined }, extra || {}) };
+  }
 
   A.specFor = function (s, inst) {
     const reg = s.world.regions[s.reg];
@@ -1491,29 +1558,44 @@
     const r = rng(hash(key + ':' + s.turn));
     const sp = { kind: 'outdoor', biome: reg.biome, tod: r() < 0.5 ? 'dia' : r() < 0.45 ? 'tarde' : r() < 0.5 ? 'neblina' : 'noite', fig: null, weather: null, seed: hash(key + s.name + s.turn) };
     const pref = String(key).split(':')[0];
-    const quem = () => A.newLook(key + 'npc', r() < 0.5 ? 'm' : 'f');
+    const text = String(inst.text || '');
+    const low = text.toLowerCase();
+    const who = personOf(s, inst, text);
     if (pref === 'cri') sp.fig = { t: 'criatura', c: (inst.e && inst.e.art && inst.e.art.c) || { base: 'lobo', adj: 'faminto', tipo: 'fera', pow: 3 } };
-    else if (pref === 'viaj') sp.fig = { t: 'pessoa', look: quem(), opt: { cloak: '#5a4a3a', cloth: '#6a5a4a', pack: true } };
-    else if (pref === 'masc') { sp.kind = r() < 0.5 ? 'outdoor' : 'mercado'; sp.fig = { t: 'pessoa', look: quem(), opt: { job: 'mercador' } }; }
-    else if (pref === 'lug') { sp.kind = /caverna|mina|cripta|poço/.test(inst.text) ? 'caverna' : 'ruina'; sp.fig = { t: r() < 0.5 ? 'bau' : 'cristal' }; }
+    else if (pref === 'viaj') sp.fig = personFig(key, who, { cloak: '#5a4a3a', cloth: '#6a5a4a', pack: true });
+    else if (pref === 'masc') { sp.kind = r() < 0.5 ? 'outdoor' : 'mercado'; sp.fig = personFig(key, who || { sexo: 'm', role: 'mercador' }); if (sp.fig.opt.role === 'adulto') sp.fig.opt.role = 'mercador'; }
+    else if (pref === 'lug') { sp.kind = /caverna|mina|cripta|poço|gruta/.test(low) ? 'caverna' : 'ruina'; sp.fig = { t: r() < 0.5 ? 'bau' : 'cristal' }; }
     else if (pref === 'mis') { sp.kind = 'cidade'; sp.fig = { t: 'quadro' }; }
     else if (pref === 'fes') { sp.kind = 'festa'; sp.tod = r() < 0.5 ? 'noite' : 'tarde'; }
     else if (pref === 'son') { sp.kind = 'sonho'; sp.tod = 'sonho'; sp.fig = { t: 'cristal' }; }
-    else if (pref === 'brin') { sp.fig = { t: 'pessoa', look: quem(), opt: { stage: 'inf' } }; sp.tod = 'dia'; }
+    else if (pref === 'brin') { sp.fig = personFig(key, { sexo: (who && who.sexo) || (r() < 0.5 ? 'm' : 'f'), role: 'crianca' }); sp.tod = 'dia'; }
     else if (pref === 'cli') {
-      sp.tod = /seca/.test(inst.text) ? 'dia' : 'tempestade';
-      sp.weather = /inverno|neve/.test(inst.text) || reg.biome === 'tundra' ? 'neve' : /seca|primavera/.test(inst.text) ? null : 'chuva';
-      if (/nevoeiro/.test(inst.text)) { sp.tod = 'neblina'; sp.weather = null; }
+      sp.tod = /seca/.test(low) ? 'dia' : 'tempestade';
+      sp.weather = /inverno|neve/.test(low) || reg.biome === 'tundra' ? 'neve' : /seca|primavera/.test(low) ? null : 'chuva';
+      if (/nevoeiro/.test(low)) { sp.tod = 'neblina'; sp.weather = null; }
     } else {
-      const hay = (inst.id + ' ' + inst.text).toLowerCase();
-      for (const [re, kind, fig, tod, weather] of RULES) if (re.test(hay)) { sp.kind = kind; if (fig) sp.fig = fig; if (tod) sp.tod = tod; if (weather) sp.weather = weather; break; }
-      if (/noite|lua|madrugada/.test(hay) && sp.kind === 'outdoor') sp.tod = 'noite';
-      if (!sp.fig && /\{npc\}|um estranho|uma mulher|um velho|mendigo|escriba|nobre|mentor|recrutador|valent|rival|amigo/.test(inst.e && typeof inst.e.text === 'string' ? inst.e.text : hay)) sp.fig = { t: 'pessoa', look: quem(), opt: {} };
+      const hay = (inst.id + ' ' + low);
+      for (const [re, kind, fig, tod, weather] of RULES) if (re.test(hay)) { sp.kind = kind; if (fig) sp.fig = Object.assign({}, fig); if (tod) sp.tod = tod; if (weather) sp.weather = weather; break; }
+      if (/noite|(?<![\wÀ-ú])lua|madrugada/.test(low) && sp.kind === 'outdoor') sp.tod = 'noite';
+      if (!sp.fig && who) sp.fig = personFig(key, who);
+    }
+    if (sp.fig && sp.fig.t === 'coracao') {
+      const amor = s.ppl && s.ppl.amor && text.includes(s.ppl.amor) ? G.gen.sexOf(s.ppl.amor) : null;
+      sp.fig.sexo = amor || (who && who.sexo) || (s.sexo === 'f' ? 'm' : 'f');
+    }
+    // o lugar escrito no texto manda no fundo (ex.: "floresta" mostra floresta, não a região atual)
+    if (sp.kind === 'outdoor') {
+      // nomes de vilas ("Porto Velho", "Bosque Alto") não contam como lugar descrito
+      let t2 = low; const c = inst.ctx || {};
+      for (const v of [s.world.homeTown, c.vila, c.vila2, c.cidade]) if (v) t2 = t2.split(String(v).toLowerCase()).join(' ');
+      const pl = placeOf(t2); if (pl) sp.biome = pl;
     }
     if (sp.kind === 'mar' && sp.tod === 'neblina') sp.tod = 'dia';
-    if (reg.biome === 'tundra' && !sp.weather && sp.kind === 'outdoor' && r() < 0.5) sp.weather = 'neve';
+    if (sp.biome === 'tundra' && !sp.weather && sp.kind === 'outdoor' && r() < 0.5) sp.weather = 'neve';
+    if (sp.biome === 'deserto' && sp.weather === 'neve') sp.weather = null;
     return sp;
   };
+  A.personOf = personOf;
 
   /* ======================= título e túmulo ======================= */
   const titleCache = {};

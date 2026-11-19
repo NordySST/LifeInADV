@@ -43,7 +43,7 @@
     };
   };
 
-  C.hitChance = (s, stat, pow, bonus) => clamp(0.58 + (st(s, stat) - pow) * 0.08 + (bonus || 0) + (st(s, 'sor') - 3) * 0.015, 0.12, 0.94);
+  C.hitChance = (s, stat, pow, bonus) => clamp(0.62 + (st(s, stat) - pow) * 0.08 + (bonus || 0) + (st(s, 'sor') - 3) * 0.015, 0.12, 0.94);
 
   function heroStrike(s, b, stat, mult, critB) {
     if (!R.chance(C.hitChance(s, stat, defPow(b), 0))) return { who: 'hero', kind: 'atk', hit: false, dmg: 0 };
@@ -57,7 +57,7 @@
   function foeStrike(s, b, mult) {
     if (b.stun > 0) { b.stun--; return { who: 'foe', kind: 'stunned', hit: false, dmg: 0 }; }
     const def = st(s, 'agi') * (b.posture === 'cau' ? 1.35 : 1) + (b.guard ? 3 : 0);
-    if (!R.chance(clamp(0.52 + (defPow(b) - def) * 0.07, 0.12, 0.88))) return { who: 'foe', kind: 'atk', hit: false, dmg: 0 };
+    if (!R.chance(clamp(0.5 + (defPow(b) - def) * 0.07, 0.12, 0.85))) return { who: 'foe', kind: 'atk', hit: false, dmg: 0 };
     let d = Math.max(1, Math.round((1 + b.e.pow / (b.boss ? 4 : 3.5)) * (mult || 1)));
     if (b.posture === 'cau') d = Math.max(1, d - 1);
     if (b.posture === 'agr') d += 1;

@@ -56,6 +56,7 @@
     'das Cinzas', 'do Carvalho', 'dos Sinos', 'das Garças', 'do Lobo', 'Quebrado', 'Real', 'do Sal'];
   const DOMINIOS = ['das colheitas', 'do mar', 'da guerra', 'da lua', 'dos ladrões', 'da forja', 'dos mortos', 'do vento', 'do conhecimento', 'da sorte', 'do fogo', 'dos sonhos', 'das estradas', 'do riso'];
 
+  const SEXO = {};
   const cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
 
   G.gen = {
@@ -63,8 +64,11 @@
       let n;
       do n = R.pick(INI) + R.pick(MEIO) + R.pick(sx === 'f' ? FIM_F : FIM_M);
       while (n.length > 10 || /([aeiou])\1/.test(n));
+      SEXO[n] = sx === 'f' ? 'f' : 'm';
       return n;
     },
+    // gênero de um nome gerado (para as cenas mostrarem homem ou mulher certo)
+    sexOf: (n) => SEXO[n] || (/(a|ise|ane)$/.test(String(n)) ? 'f' : 'm'),
     surname: () => R.pick(SOB1) + R.pick(SOB2),
     proper() {
       let n;
